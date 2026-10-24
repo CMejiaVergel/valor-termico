@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+/* Identidad Calor Rescatado (colores del prototipo v1). Las variables de fuente
+   (--font-titulos, --font-texto, --font-mono) las pone next/font en <body>. */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #051417;
+  color: #e0f0f2;
+  font-family: var(--font-texto), "IBM Plex Sans", system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-titulos), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.cifra-tabular {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.vt-degradado {
+  background: linear-gradient(90deg, #00aec0, #cfe84e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.vt-resplandor {
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 30%, rgba(255, 138, 61, 0.12), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 50% 85%, rgba(0, 174, 192, 0.1), transparent 70%);
+}
+
+/* Etiquetas de fuentes y demandas sobre el mapa (marcadores HTML, fondo sólido: sin backdrop-filter). */
+.vt-etiqueta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(5, 20, 23, 0.92);
+  color: #fff;
+  line-height: 1.15;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.3s;
+}
+.vt-etiqueta strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.vt-etiqueta em {
+  font-style: normal;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 4px;
+  color: #051417;
+}
+.vt-etiqueta span {
+  font-size: 9.5px;
+  color: #8ca8ad;
+}
+.vt-etiqueta--fuente {
+  border-color: rgba(255, 138, 61, 0.75);
+}
+.vt-etiqueta--fuente em {
+  background: #ff8a3d;
+}
+.vt-etiqueta--demanda {
+  border-color: rgba(96, 165, 250, 0.75);
+}
+.vt-etiqueta--demanda em {
+  background: #60a5fa;
+}
+/* Mapbox escribe opacity y transform en línea sobre el marcador: se oculta con visibility. */
+.vt-etiqueta[data-visible="0"] {
+  visibility: hidden !important;
+  pointer-events: none;
+}
+/* La línea de detalle solo en foco o al pasar el mouse: menos ruido sobre el mapa. */
+.vt-etiqueta span {
+  display: none;
+}
+.vt-etiqueta:hover span,
+.vt-etiqueta[data-foco="1"] span {
+  display: block;
+}
+.vt-etiqueta:hover {
+  z-index: 5;
+}
+.vt-etiqueta[data-foco="1"] {
+  border-color: #cfe84e;
+  box-shadow: 0 0 0 2px rgba(207, 232, 78, 0.35), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.vt-etiqueta[data-foco="1"] strong {
+  font-size: 13px;
+}
+
+/* Nivel de detalle (data-nivel lo pone el bucle de dibujo del mapa). */
+.vt-mapa:not([data-nivel="3"]) .vt-etiqueta {
+  visibility: hidden;
+}
+.vt-mapa:not([data-nivel="1"]) .vt-sitio {
+  visibility: hidden;
+}
+.vt-sitio {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 174, 192, 0.55);
+  background: rgba(5, 20, 23, 0.9);
+  color: #fff;
+  line-height: 1.15;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.vt-sitio strong {
+  font-size: 12px;
+}
+.vt-sitio span {
+  font-size: 10px;
+  color: #8ca8ad;
+}
+.vt-sitio--piloto {
+  border-color: rgba(255, 138, 61, 0.9);
+}
+.vt-sitio--piloto span {
+  color: #ff8a3d;
+}
+
+/* Progreso del paso en la presentación automática (CSS, sin renders de React). */
+.vt-progreso-paso {
+  width: 0;
+  animation-name: vt-progreso;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes vt-progreso {
+  to {
+    width: 100%;
+  }
+}
+
+/* Deslizadores. */
+.vt-rango {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #00aec0, #cfe84e);
+  outline: none;
+}
+.vt-rango::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #00aec0;
+  cursor: pointer;
+}
+.vt-rango::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #00aec0;
+  cursor: pointer;
+}
+
+/* Celular. */
+@media (max-width: 767px) {
+  .vt-mapa .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group {
+    display: none;
+  }
+  .vt-etiqueta {
+    padding: 2px 6px;
+  }
+  .vt-etiqueta strong {
+    font-size: 9.5px;
+  }
+  .vt-etiqueta span {
+    display: none;
+  }
+}
+.vt-tarjeta-movil {
+  animation: vt-subir 0.28s ease-out;
+}
+@keyframes vt-subir {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vt-tarjeta-movil {
+    animation: none;
+  }
+}
+
+/* Paneles con scroll fino. */
+aside::-webkit-scrollbar,
+nav::-webkit-scrollbar {
+  width: 6px;
+}
+aside::-webkit-scrollbar-thumb,
+nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}

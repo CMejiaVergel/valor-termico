@@ -1,0 +1,1854 @@
+<title>Mapa de Oportunidades Termicas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+<style>
+:root {
+  --teal:#00AEC0; --orange:#FF8A3D; --magenta:#F0479A; --lime:#CFE84E;
+  --bg:#051417; --paper:#0E2B30; --card:#122E33; --card2:#193940;
+  --fg:#E0F0F2; --fg2:#8CA8AD; --fg3:#5A7A80;
+  --green:#4ADE80; --yellow:#FACC15; --red:#EF4444; --blue:#60A5FA;
+  --source:#FF8A3D; --demand:#60A5FA;
+  --radius:12px; --radius-sm:8px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#F0F6F7; --paper:#FFFFFF; --card:#E8F0F2; --card2:#D8E8EB;
+  --fg:#0A2A2F; --fg2:#4A6A70; --fg3:#7A9A9F;
+  color-scheme:light;
+}}
+:root[data-theme="light"]{
+  --bg:#F0F6F7; --paper:#FFFFFF; --card:#E8F0F2; --card2:#D8E8EB;
+  --fg:#0A2A2F; --fg2:#4A6A70; --fg3:#7A9A9F;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:'IBM Plex Sans',system-ui,sans-serif;
+  font-size:14px; line-height:1.5;
+  overflow-x:hidden;
+  padding-inline:0;
+}
+h1,h2,h3,h4{font-family:'Fraunces',Georgia,serif;font-weight:700;line-height:1.2;text-wrap:balance}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ─── Layout ─── */
+.screen{display:none;min-height:100vh;animation:fadeIn .4s ease}
+.screen.active{display:flex;flex-direction:column}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ─── Nav ─── */
+.topnav{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:100;
+  background:color-mix(in srgb,var(--bg) 92%,transparent);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid color-mix(in srgb,var(--fg) 8%,transparent);
+  padding:10px 20px;display:flex;align-items:center;gap:16px;
+}
+.topnav .logo{font-family:'Fraunces',serif;font-size:15px;font-weight:700;color:var(--teal);white-space:nowrap}
+.topnav .steps{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.step-pill{
+  font-size:11px;padding:4px 10px;border-radius:20px;
+  background:var(--card);color:var(--fg3);cursor:pointer;
+  border:1px solid transparent;transition:.2s;white-space:nowrap;
+}
+.step-pill.active{background:var(--teal);color:#051417;font-weight:600}
+.step-pill.done{border-color:var(--teal);color:var(--teal)}
+.step-pill:hover{opacity:.85}
+.btn-port{
+  font-size:11px;padding:4px 12px;border-radius:20px;
+  background:var(--orange);color:#000;font-weight:600;cursor:pointer;border:none;
+  position:relative;
+}
+.btn-port .badge{
+  position:absolute;top:-5px;right:-5px;background:var(--magenta);color:#fff;
+  font-size:9px;width:16px;height:16px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;
+}
+
+/* ─── Home Screen ─── */
+#screen-home{align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:40px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:color-mix(in srgb,var(--teal) 15%,transparent);
+  border:1px solid color-mix(in srgb,var(--teal) 30%,transparent);
+  border-radius:20px;padding:6px 16px;font-size:12px;color:var(--teal);
+}
+.hero-title{font-size:clamp(2rem,5vw,3.5rem);max-width:700px}
+.hero-title .gradient{
+  background:linear-gradient(135deg,var(--teal),var(--lime));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hero-sub{font-size:16px;color:var(--fg2);max-width:560px;line-height:1.6}
+.hero-stats{display:flex;gap:24px;flex-wrap:wrap;justify-content:center}
+.hero-stat{text-align:center}
+.hero-stat .num{font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:var(--teal)}
+.hero-stat .lbl{font-size:11px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em}
+.btn-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--teal),#00D4A8);
+  color:#051417;font-weight:700;font-size:16px;
+  padding:14px 36px;border:none;border-radius:28px;cursor:pointer;
+  transition:.2s;
+}
+.btn-cta:hover{transform:scale(1.03);box-shadow:0 0 30px color-mix(in srgb,var(--teal) 40%,transparent)}
+
+/* ─── Map Screen ─── */
+#screen-map{flex-direction:row;height:calc(100vh - 50px)}
+@media(max-width:900px){#screen-map{flex-direction:column;height:auto}}
+.map-area{flex:1;position:relative;overflow:hidden;min-height:400px;background:#4a5a3e}
+
+/* ─── Mapbox Map ─── */
+#svg-map-container{width:100%;height:100%;min-height:400px;position:relative}
+#mapbox-map{width:100%;height:100%;min-height:400px}
+.mapboxgl-ctrl-logo{opacity:.7}
+
+/* Source/demand markers are now native Mapbox GL circle+symbol layers (see rebuildCustomLayers),
+   not DOM elements — they stay pixel-locked to the map during zoom/pan with zero extra CSS. */
+
+/* Mapbox native popup restyled to match app theme */
+.gl-popup .mapboxgl-popup-content{
+  background:var(--card);color:var(--fg);
+  border:1px solid color-mix(in srgb,var(--fg) 15%,transparent);
+  border-radius:12px;padding:0;overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  font-family:'IBM Plex Sans',sans-serif;font-size:12px;
+  min-width:210px;max-width:280px;
+}
+.gl-popup .mapboxgl-popup-tip{
+  border-top-color:var(--card)!important;border-bottom-color:var(--card)!important;
+  border-left-color:var(--card)!important;border-right-color:var(--card)!important;
+}
+.gl-popup .mapboxgl-popup-close-button{color:var(--fg3);font-size:16px;padding:2px 6px;z-index:2}
+.gl-popup .mapboxgl-popup-close-button:hover{background:transparent;color:var(--fg)}
+
+/* Marker popup — small colored "mini dashboard" card */
+.pp-card{display:flex;flex-direction:column}
+.pp-head{display:flex;align-items:center;gap:9px;padding:10px 14px;border-bottom:1px solid color-mix(in srgb,var(--fg) 10%,transparent)}
+.pp-id-badge{
+  flex-shrink:0;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12px;color:#051417;
+}
+.pp-head-text{flex:1;min-width:0}
+.pp-name{font-weight:700;font-size:12.5px;line-height:1.25;color:var(--fg)}
+.pp-type-row{margin-top:4px}
+.pp-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.pp-gauge-label{display:flex;justify-content:space-between;font-size:10px;color:var(--fg3);font-family:'IBM Plex Mono',monospace;margin-bottom:5px}
+.pp-gauge-track{position:relative;height:7px;border-radius:5px;overflow:visible}
+.pp-gauge-range{position:absolute;top:-2.5px;height:12px;border-radius:4px;background:rgba(255,255,255,.3);border:1.5px solid #fff;box-sizing:border-box}
+.pp-gauge-point{position:absolute;top:-3.5px;width:3px;height:14px;border-radius:2px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.6);transform:translateX(-50%)}
+.pp-stats{display:flex;gap:8px}
+.pp-stat{flex:1;background:var(--card2);border-radius:8px;padding:7px 9px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.pp-stat .k{font-size:9px;color:var(--fg3);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.pp-stat .v{font-size:12.5px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--fg);overflow:hidden;text-overflow:ellipsis}
+.pp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pp-loc{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--fg2)}
+.pp-loc svg{flex-shrink:0;opacity:.7}
+
+.map-legend{
+  position:absolute;bottom:16px;left:16px;z-index:10;
+  background:rgba(10,30,25,.8);
+  backdrop-filter:blur(8px);
+  border:1px solid rgba(0,174,192,.2);
+  border-radius:10px;padding:10px 14px;
+  display:flex;gap:16px;align-items:center;font-size:11px;color:rgba(200,220,225,.8);
+  flex-wrap:wrap;
+}
+.map-legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+
+.map-title-overlay{
+  position:absolute;top:16px;left:16px;z-index:10;
+  font-family:'Fraunces',Georgia,serif;font-size:14px;font-weight:700;
+  color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8);
+  letter-spacing:.02em;
+  background:rgba(10,30,25,.75);backdrop-filter:blur(6px);
+  padding:8px 14px;border-radius:8px;
+  border:1px solid rgba(0,174,192,.25);
+}
+.map-title-sub{font-family:'IBM Plex Sans',sans-serif;font-size:10px;font-weight:400;color:rgba(200,220,225,.7);margin-top:2px}
+
+.map-toolbar{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:15;
+  display:flex;flex-direction:column;gap:8px;
+}
+.map-tool-btn{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(10,30,25,.82);backdrop-filter:blur(8px);
+  border:1px solid rgba(0,174,192,.25);border-radius:10px;
+  padding:8px 11px;color:rgba(220,235,238,.9);
+  font-family:'IBM Plex Sans',sans-serif;font-size:10.5px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:.15s;
+}
+.map-tool-btn svg{flex-shrink:0}
+.map-tool-btn:hover{background:rgba(10,45,40,.92);border-color:rgba(0,174,192,.45)}
+.map-tool-btn.active{background:var(--teal);color:#051417;border-color:var(--teal)}
+@media(max-width:900px){
+  .map-toolbar{left:8px;gap:6px}
+  .map-tool-btn{padding:8px;width:34px;height:34px;justify-content:center}
+  .map-tool-btn span{display:none}
+}
+
+/* Heatmap intensity / thermographic-palette controls (shown while Térmico is active) */
+.heat-controls{
+  position:absolute;left:12px;bottom:66px;z-index:15;
+  background:rgba(10,30,25,.88);backdrop-filter:blur(10px);
+  border:1px solid rgba(0,174,192,.3);border-radius:10px;
+  padding:10px 12px;display:none;flex-direction:column;gap:9px;
+  min-width:190px;
+}
+.heat-controls.visible{display:flex}
+.heat-controls-row{display:flex;align-items:center;gap:8px}
+.heat-controls-label{font-size:10px;color:rgba(200,220,225,.75);font-family:'IBM Plex Sans',sans-serif;white-space:nowrap;min-width:52px}
+.heat-controls-val{font-size:10px;color:var(--teal);font-family:'IBM Plex Mono',monospace;min-width:34px;text-align:right}
+.heat-controls input[type=range]{flex:1;height:4px;margin:0}
+.heat-controls input[type=range]::-webkit-slider-thumb{width:14px;height:14px}
+.heat-palette-swatches{display:flex;gap:6px}
+.heat-swatch{
+  width:22px;height:22px;border-radius:6px;border:2px solid rgba(255,255,255,.15);
+  cursor:pointer;padding:0;transition:.15s;
+}
+.heat-swatch:hover{transform:scale(1.1)}
+.heat-swatch.active{border-color:#fff;box-shadow:0 0 0 2px rgba(0,174,192,.55)}
+@media(max-width:900px){
+  .heat-controls{left:8px;bottom:58px;min-width:168px;padding:8px 10px}
+}
+
+.config-panel{
+  width:380px;max-width:100%;overflow-y:auto;
+  background:var(--paper);border-left:1px solid color-mix(in srgb,var(--fg) 8%,transparent);
+  padding:20px;display:flex;flex-direction:column;gap:16px;
+}
+@media(max-width:900px){.config-panel{width:100%;border-left:none;border-top:1px solid color-mix(in srgb,var(--fg) 8%,transparent)}}
+.panel-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fg3)}
+.source-card,.demand-card{
+  background:var(--card);border-radius:var(--radius-sm);padding:14px;
+  border:1px solid transparent;cursor:pointer;transition:.2s;
+}
+.source-card:hover,.demand-card:hover{border-color:var(--teal)}
+.source-card.selected{border-color:var(--orange);background:color-mix(in srgb,var(--orange) 10%,var(--card))}
+.demand-card.selected{border-color:var(--blue);background:color-mix(in srgb,var(--blue) 10%,var(--card))}
+.source-card .name,.demand-card .name{font-weight:600;font-size:13px}
+.source-card .meta,.demand-card .meta{font-size:11px;color:var(--fg2);margin-top:4px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.tag-source{background:color-mix(in srgb,var(--orange) 20%,transparent);color:var(--orange)}
+.tag-demand{background:color-mix(in srgb,var(--blue) 20%,transparent);color:var(--blue)}
+.tag-alta{background:color-mix(in srgb,var(--green) 20%,transparent);color:var(--green)}
+.tag-media{background:color-mix(in srgb,var(--yellow) 20%,transparent);color:var(--yellow)}
+.tag-baja{background:color-mix(in srgb,var(--red) 20%,transparent);color:var(--red)}
+
+/* Tech & Model selectors */
+.tech-list,.model-list{display:flex;flex-direction:column;gap:8px}
+.tech-item,.model-item{
+  background:var(--card);border-radius:var(--radius-sm);padding:12px;
+  border:2px solid transparent;cursor:pointer;transition:.2s;
+}
+.tech-item:hover,.model-item:hover{border-color:color-mix(in srgb,var(--teal) 50%,transparent)}
+.tech-item.selected{border-color:var(--lime);background:color-mix(in srgb,var(--lime) 8%,var(--card))}
+.model-item.selected{border-color:var(--magenta);background:color-mix(in srgb,var(--magenta) 8%,var(--card))}
+.compat-badge{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;float:right}
+
+/* Sliders */
+.slider-group{display:flex;flex-direction:column;gap:12px}
+.slider-row{display:flex;flex-direction:column;gap:4px}
+.slider-row label{font-size:12px;color:var(--fg2);display:flex;justify-content:space-between}
+.slider-row label span{color:var(--teal);font-weight:600;font-family:'IBM Plex Mono',monospace}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:6px;border-radius:3px;
+  background:var(--card2);outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--teal);cursor:pointer;border:2px solid var(--bg);
+}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 20px;border-radius:var(--radius-sm);font-weight:600;font-size:13px;
+  cursor:pointer;border:none;transition:.2s;
+}
+.btn-primary{background:var(--teal);color:#051417}
+.btn-secondary{background:var(--card2);color:var(--fg)}
+.btn-accent{background:var(--orange);color:#051417}
+.btn-magenta{background:var(--magenta);color:#fff}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.1)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ─── Dashboard ─── */
+.dash-content{padding:20px;max-width:1200px;margin:0 auto;width:100%}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.kpi-card{
+  background:var(--card);border-radius:var(--radius-sm);padding:16px;
+  text-align:center;border-top:3px solid var(--teal);
+}
+.kpi-card .val{font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--teal)}
+.kpi-card .lbl{font-size:11px;color:var(--fg2);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+.chart-box{background:var(--card);border-radius:var(--radius);padding:20px;min-width:0}
+.chart-box h3{font-size:14px;margin-bottom:12px;color:var(--fg)}
+.chart-box canvas{max-height:280px}
+
+/* Risk semaphore */
+.semaphore{display:flex;gap:12px;align-items:center;justify-content:center;padding:12px}
+.sem-light{width:28px;height:28px;border-radius:50%;opacity:.25;transition:.3s}
+.sem-light.on{opacity:1;box-shadow:0 0 12px currentColor}
+.sem-green{background:var(--green);color:var(--green)}
+.sem-yellow{background:var(--yellow);color:var(--yellow)}
+.sem-red{background:var(--red);color:var(--red)}
+
+/* ─── Portfolio ─── */
+.port-table{width:100%;border-collapse:collapse;font-size:13px}
+.port-table th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--teal);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--fg3);white-space:nowrap}
+.port-table td{padding:10px 8px;border-bottom:1px solid color-mix(in srgb,var(--fg) 8%,transparent)}
+.port-table tr:hover td{background:color-mix(in srgb,var(--teal) 5%,transparent)}
+.port-table .score{font-weight:700;font-family:'IBM Plex Mono',monospace}
+.score-bar{height:6px;border-radius:3px;background:var(--card2);overflow:hidden;min-width:60px}
+.score-bar-fill{height:100%;border-radius:3px;transition:.4s}
+
+/* Unit selector */
+.unit-select{
+  background:var(--card);color:var(--fg);border:1px solid var(--fg3);
+  border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;
+}
+
+/* ─── Scroll ─── */
+.config-panel::-webkit-scrollbar{width:6px}
+.config-panel::-webkit-scrollbar-track{background:transparent}
+.config-panel::-webkit-scrollbar-thumb{background:var(--fg3);border-radius:3px}
+
+/* ─── Empty states ─── */
+.empty-state{text-align:center;padding:40px 20px;color:var(--fg3)}
+.empty-state .icon{font-size:40px;margin-bottom:12px}
+
+/* ─── Table overflow ─── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ─── Action bar ─── */
+.action-bar{display:flex;gap:10px;flex-wrap:wrap;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--fg) 8%,transparent);margin-top:auto}
+
+/* Hide on mobile */
+@media(max-width:600px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .charts-grid{grid-template-columns:1fr}
+  .hero-title{font-size:1.8rem}
+  .topnav .steps{display:none}
+}
+
+.config-section{
+  background:var(--card);border-radius:var(--radius-sm);padding:14px;
+  border-left:3px solid var(--fg3);
+}
+.config-section.active-section{border-left-color:var(--teal)}
+.config-section.done-section{border-left-color:var(--green)}
+.section-header{font-size:12px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.section-header .step-num{
+  width:20px;height:20px;border-radius:50%;background:var(--fg3);color:var(--bg);
+  display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;
+}
+.active-section .section-header{color:var(--teal)}
+.active-section .section-header .step-num{background:var(--teal)}
+.done-section .section-header .step-num{background:var(--green)}
+.scrollable-list{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+
+.opp-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:color-mix(in srgb,var(--teal) 15%,transparent);
+  border:1px solid var(--teal);border-radius:16px;padding:4px 10px;
+  font-size:11px;color:var(--teal);font-weight:600;
+}
+
+select.unit-select{appearance:auto}
+.dash-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+</style>
+
+<!-- ─────────── TOP NAV ─────────── -->
+<nav class="topnav" id="topnav" style="display:none">
+  <div class="logo">Calor Rescatado</div>
+  <div class="steps" id="nav-steps">
+    <div class="step-pill active" data-screen="map" onclick="goScreen('map')">Mapa</div>
+    <div class="step-pill" data-screen="dashboard" onclick="goScreen('dashboard')">Dashboard</div>
+    <div class="step-pill" data-screen="portfolio" onclick="goScreen('portfolio')">Portafolio</div>
+  </div>
+  <button class="btn-port" onclick="goScreen('portfolio')">Portafolio <span class="badge" id="port-badge">0</span></button>
+</nav>
+
+<!-- ─────────── SCREEN: HOME ─────────── -->
+<section class="screen active" id="screen-home">
+  <div class="hero-badge">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6l3-3M12 8l-3-3"/><circle cx="12" cy="16" r="5"/></svg>
+    Prototipo Interactivo
+  </div>
+  <h1 class="hero-title">Mapa de Oportunidades <span class="gradient">Termicas</span></h1>
+  <p class="hero-sub">Convierte calor residual invisible en un portafolio de proyectos medibles, priorizados y financiables para la refineria.</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">78 MWt</div><div class="lbl">Calor Residual</div></div>
+    <div class="hero-stat"><div class="num">6</div><div class="lbl">Oportunidades</div></div>
+    <div class="hero-stat"><div class="num">7</div><div class="lbl">Tecnologias</div></div>
+    <div class="hero-stat"><div class="num">1.75 PJ</div><div class="lbl">Ahorro/Ano</div></div>
+  </div>
+  <button class="btn-cta" onclick="startDemo()">
+    Iniciar Demo
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+  <p style="font-size:11px;color:var(--fg3);max-width:400px">Herramienta para conectar fuentes de calor residual con demandas energeticas en plantas industriales y refinerias.</p>
+</section>
+
+<!-- ─────────── SCREEN: MAP (SVG) ─────────── -->
+<section class="screen" id="screen-map">
+  <div class="map-area" id="map-area">
+    <div id="svg-map-container">
+      <div id="mapbox-map"></div>
+    </div>
+    <div class="map-title-overlay">
+      Refinería de Cartagena (Reficar)
+      <div class="map-title-sub">Mamonal, Cartagena &mdash; Vista aérea interactiva</div>
+    </div>
+    <div class="map-toolbar">
+      <button class="map-tool-btn active" id="tool-style" onclick="cycleMapStyle()" title="Cambiar vista del mapa">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>
+        <span id="tool-style-label">Satélite</span>
+      </button>
+      <button class="map-tool-btn" id="tool-heatmap" onclick="toggleHeatmap()" title="Mapa térmico">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c2 3-1 4-1 7a3 3 0 106 0c0-1.5-.7-2.3-1-3.5 2 1.5 3 3.5 3 6.5a7 7 0 11-14 0c0-3.3 2.2-5 4-7.5-.3-1 .3-2 2-2.5z"/></svg>
+        <span>Térmico</span>
+      </button>
+      <button class="map-tool-btn" id="tool-connections" onclick="toggleConnections()" title="Conexiones compatibles">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.2"/><circle cx="18" cy="6" r="2.2"/><circle cx="12" cy="19" r="2.2"/><path d="M8 7l3.2 10.5M16 7l-3.2 10.5M8.2 6h7.6"/></svg>
+        <span>Conexiones</span>
+      </button>
+      <button class="map-tool-btn" id="tool-3d" onclick="toggle3D()" title="Vista 3D / plana">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
+        <span>Vista 3D</span>
+      </button>
+      <button class="map-tool-btn" id="tool-tour" onclick="toggleTour()" title="Recorrido 360°">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        <span>Recorrido</span>
+      </button>
+    </div>
+    <div class="heat-controls" id="heat-controls">
+      <div class="heat-controls-row">
+        <span class="heat-controls-label">Intensidad</span>
+        <input type="range" min="30" max="250" value="100" id="heat-intensity-slider" oninput="updateHeatIntensity(this.value)">
+        <span class="heat-controls-val" id="heat-intensity-val">100%</span>
+      </div>
+      <div class="heat-controls-row">
+        <span class="heat-controls-label">Paleta</span>
+        <div class="heat-palette-swatches">
+          <button class="heat-swatch active" data-palette="classic" onclick="setHeatPalette('classic')" title="Clásico" style="background:linear-gradient(90deg,#00AEC0,#CFE84E,#FF8A3D,#EF4444)"></button>
+          <button class="heat-swatch" data-palette="ironbow" onclick="setHeatPalette('ironbow')" title="Ironbow" style="background:linear-gradient(90deg,#140028,#5a0a6e,#b4245a,#e66414,#ffffff)"></button>
+          <button class="heat-swatch" data-palette="rainbow" onclick="setHeatPalette('rainbow')" title="Arcoíris" style="background:linear-gradient(90deg,#001edc,#00c8dc,#00dc50,#e6dc00,#e61e1e)"></button>
+          <button class="heat-swatch" data-palette="whitehot" onclick="setHeatPalette('whitehot')" title="Blanco cálido" style="background:linear-gradient(90deg,#000000,#828282,#ffffff)"></button>
+        </div>
+      </div>
+    </div>
+    <div class="map-legend">
+      <span><span class="map-legend-dot" style="background:#FF8A3D"></span>Fuente termica</span>
+      <span><span class="map-legend-dot" style="background:#60A5FA"></span>Demanda energetica</span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <svg width="30" height="6"><line x1="0" y1="3" x2="30" y2="3" stroke="#00AEC0" stroke-width="2" stroke-dasharray="4 2"/></svg>
+        Flujo termico
+      </span>
+    </div>
+  </div>
+
+  <div class="config-panel" id="config-panel">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <span class="panel-title">Configurador</span>
+      <select class="unit-select" id="unit-select" onchange="updateUnits()">
+        <option value="MWt">MWt</option>
+        <option value="GJ/ano">GJ/ano</option>
+        <option value="TJ/ano">TJ/ano</option>
+        <option value="PJ/ano">PJ/ano</option>
+        <option value="MWh/ano">MWh/ano</option>
+        <option value="GWh/ano">GWh/ano</option>
+      </select>
+    </div>
+
+    <!-- Step 1: Source -->
+    <div class="config-section active-section" id="cfg-step1">
+      <div class="section-header"><span class="step-num">1</span> Fuente Termica</div>
+      <div class="scrollable-list" id="source-list"></div>
+    </div>
+
+    <!-- Step 2: Demand -->
+    <div class="config-section" id="cfg-step2" style="opacity:.5">
+      <div class="section-header"><span class="step-num">2</span> Demanda Energetica</div>
+      <div class="scrollable-list" id="demand-list">
+        <div class="empty-state" style="padding:12px"><span style="font-size:11px">Selecciona una fuente primero</span></div>
+      </div>
+    </div>
+
+    <!-- Step 3: Technology -->
+    <div class="config-section" id="cfg-step3" style="opacity:.5">
+      <div class="section-header"><span class="step-num">3</span> Tecnologia</div>
+      <div class="scrollable-list" id="tech-list">
+        <div class="empty-state" style="padding:12px"><span style="font-size:11px">Selecciona fuente y demanda</span></div>
+      </div>
+    </div>
+
+    <!-- Step 4: Business Model -->
+    <div class="config-section" id="cfg-step4" style="opacity:.5">
+      <div class="section-header"><span class="step-num">4</span> Modelo de Negocio</div>
+      <div class="scrollable-list" id="model-list">
+        <div class="empty-state" style="padding:12px"><span style="font-size:11px">Selecciona una tecnologia</span></div>
+      </div>
+    </div>
+
+    <!-- Step 5: Parameters -->
+    <div class="config-section" id="cfg-step5" style="opacity:.5">
+      <div class="section-header"><span class="step-num">5</span> Parametros</div>
+      <div class="slider-group" id="slider-group">
+        <div class="slider-row">
+          <label>Eficiencia aprovechamiento <span id="val-eff">60%</span></label>
+          <input type="range" min="30" max="90" value="60" id="sl-eff" oninput="updateSliders()">
+        </div>
+        <div class="slider-row">
+          <label>Costo energia evitada <span id="val-cost">$50/MWh</span></label>
+          <input type="range" min="20" max="120" value="50" id="sl-cost" oninput="updateSliders()">
+        </div>
+        <div class="slider-row">
+          <label>Horas operacion/ano <span id="val-hrs">8000 h</span></label>
+          <input type="range" min="4000" max="8760" value="8000" step="100" id="sl-hrs" oninput="updateSliders()">
+        </div>
+        <div class="slider-row">
+          <label>Factor CAPEX <span id="val-capex">1.0x</span></label>
+          <input type="range" min="50" max="200" value="100" id="sl-capex" oninput="updateSliders()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action -->
+    <div class="action-bar" id="cfg-actions">
+      <button class="btn btn-primary" id="btn-calculate" disabled onclick="calculateAndShow()">Ver Dashboard</button>
+      <button class="btn btn-secondary" onclick="resetConfig()">Reiniciar</button>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── SCREEN: INDIVIDUAL DASHBOARD ─────────── -->
+<section class="screen" id="screen-dashboard">
+  <div class="dash-content">
+    <div class="dash-header">
+      <div>
+        <h2 id="dash-title" style="font-size:20px">Dashboard de Oportunidad</h2>
+        <p id="dash-subtitle" style="color:var(--fg2);font-size:13px;margin-top:4px"></p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-accent" id="btn-add-port" onclick="addToPortfolio()">Agregar al Portafolio</button>
+        <button class="btn btn-secondary" onclick="goScreen('map')">Volver al Mapa</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="dash-kpis"></div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;color:var(--fg2)">Nivel de Riesgo:</span>
+      <div class="semaphore" id="risk-semaphore">
+        <div class="sem-light sem-green"></div>
+        <div class="sem-light sem-yellow"></div>
+        <div class="sem-light sem-red"></div>
+      </div>
+      <span id="risk-label" style="font-size:13px;font-weight:600"></span>
+      <span style="flex:1"></span>
+      <div id="dash-score-badge"></div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-box"><h3>Perfil Tecnico-Economico</h3><canvas id="chart-radar"></canvas></div>
+      <div class="chart-box"><h3>Comparacion de Modelos de Negocio</h3><canvas id="chart-models"></canvas></div>
+      <div class="chart-box"><h3>Desglose de Ahorro Anual</h3><canvas id="chart-savings"></canvas></div>
+      <div class="chart-box"><h3>Flujo Energetico</h3><div id="sankey-viz" style="min-height:180px;display:flex;align-items:center;justify-content:center"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── SCREEN: PORTFOLIO ─────────── -->
+<section class="screen" id="screen-portfolio">
+  <div class="dash-content">
+    <div class="dash-header">
+      <div>
+        <h2 style="font-size:20px">Portafolio de Oportunidades</h2>
+        <p style="color:var(--fg2);font-size:13px;margin-top:4px">Dashboard general del mapa termico</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="loadPreloaded()">Cargar 6 Oportunidades Demo</button>
+        <button class="btn btn-secondary" onclick="goScreen('map')">Agregar Oportunidad</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="port-kpis"></div>
+    <div class="chart-box" style="margin-bottom:20px">
+      <h3>Ranking de Oportunidades</h3>
+      <div class="table-wrap">
+        <table class="port-table" id="port-table">
+          <thead><tr>
+            <th>ID</th><th>Fuente</th><th>Demanda</th><th>Tecnologia</th><th>Modelo</th>
+            <th>Potencia</th><th>Ahorro/Ano</th><th>Payback</th><th>Puntaje</th><th>Prioridad</th><th></th>
+          </tr></thead>
+          <tbody id="port-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="port-empty" style="display:none">
+        <div class="icon">📊</div>
+        <p>No hay oportunidades en el portafolio.</p>
+        <p style="font-size:12px">Evalua oportunidades desde el mapa o carga las 6 de demo.</p>
+      </div>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-box"><h3>Portafolio por Tecnologia</h3><canvas id="chart-port-tech"></canvas></div>
+      <div class="chart-box"><h3>Portafolio por Modelo de Negocio</h3><canvas id="chart-port-model"></canvas></div>
+      <div class="chart-box"><h3>Embudo de Oportunidades</h3><canvas id="chart-funnel"></canvas></div>
+      <div class="chart-box"><h3>CAPEX vs Ahorro Anual</h3><canvas id="chart-bubble"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   MAP CONFIG
+   ═══════════════════════════════════════════════════ */
+const MAP_CENTER = [-75.4975, 10.3150];
+const GEO_BOUNDS = { minLng:-75.5040, maxLng:-75.4890, minLat:10.3110, maxLat:10.3200 };
+const MAPBOX_TOKEN = 'pk.TOKEN_RETIRADO_USE_EL_SUYO';
+
+/* Live Mapbox state */
+let map = null;
+let activePopup = null;
+let flowDashTimer = null, flowDashStep = 0;
+let tourRAF = null;
+let hoveredSourceId = null, hoveredDemandId = null;
+let glowPulseRAF = null, glowPulsePhase = 0;
+const FLOW_DASH_SEQUENCE = [[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,.5],[3,4,0],[0,.5,3,3.5]];
+
+const MAP_STYLES = {
+  satellite: { url:'mapbox://styles/mapbox/satellite-streets-v12', label:'Satélite' },
+  terrain:   { url:'mapbox://styles/mapbox/outdoors-v12',          label:'Relieve'  },
+  plano:     { url:'mapbox://styles/mapbox/light-v11',             label:'Plano'    },
+};
+const STYLE_ORDER = ['satellite','terrain','plano'];
+
+let mapViewState = { styleMode:'satellite', heatmapOn:false, connectionsOn:false, is3D:false, touring:false, heatIntensity:1, heatPalette:'classic' };
+
+/* Thermographic-style heatmap color ramps, all keyed on the same ['heatmap-density'] stops
+   so swapping palettes never shifts where the "hot" edge of the field falls. */
+const HEAT_PALETTES = {
+  classic: ['interpolate', ['linear'], ['heatmap-density'],
+    0, 'rgba(0,0,0,0)', 0.15, 'rgba(0,174,192,0.45)', 0.35, 'rgba(207,232,78,0.6)',
+    0.55, 'rgba(255,138,61,0.72)', 0.75, 'rgba(240,71,154,0.82)', 1, 'rgba(239,68,68,0.92)'],
+  ironbow: ['interpolate', ['linear'], ['heatmap-density'],
+    0, 'rgba(0,0,0,0)', 0.12, 'rgba(20,0,40,0.55)', 0.32, 'rgba(90,10,110,0.68)',
+    0.52, 'rgba(180,30,90,0.78)', 0.68, 'rgba(230,100,20,0.85)', 0.85, 'rgba(250,190,20,0.9)', 1, 'rgba(255,255,255,0.95)'],
+  rainbow: ['interpolate', ['linear'], ['heatmap-density'],
+    0, 'rgba(0,0,0,0)', 0.15, 'rgba(0,30,220,0.55)', 0.32, 'rgba(0,200,220,0.65)',
+    0.5, 'rgba(0,220,80,0.72)', 0.68, 'rgba(230,220,0,0.8)', 0.85, 'rgba(255,120,0,0.88)', 1, 'rgba(230,30,30,0.93)'],
+  whitehot: ['interpolate', ['linear'], ['heatmap-density'],
+    0, 'rgba(0,0,0,0)', 0.2, 'rgba(60,60,60,0.5)', 0.45, 'rgba(130,130,130,0.65)',
+    0.68, 'rgba(195,195,195,0.78)', 0.85, 'rgba(230,230,230,0.88)', 1, 'rgba(255,255,255,0.95)']
+};
+/* heatmap-intensity as a zoom ramp scaled by the user's slider multiplier (0.3–2.5).
+   IMPORTANT: Mapbox's style spec only allows a ["zoom"] expression as the *direct,
+   top-level* input to "interpolate"/"step" — it can't be nested inside another
+   operator like ["*", ...]. Wrapping it that way (as an earlier version of this did)
+   makes map.addLayer() throw, which silently aborts the rest of layer setup — that
+   was the actual bug behind both "the slider does nothing" and "no se ve el mapa
+   térmico". So the slider multiplier is applied to the stop VALUES in plain JS
+   before the expression is built, keeping interpolate(zoom) as the single top-level
+   expression. */
+function heatIntensityExpr(){
+  const f = mapViewState.heatIntensity;
+  return ['interpolate', ['linear'], ['zoom'], 14, 0.9 * f, 18, 2.4 * f];
+}
+/* The slider's main, guaranteed-visible job: it rescales WHERE each palette's color
+   stops fall along the 0–1 density axis, instead of only feeding into the density
+   calculation (which can already be saturated and clip to the same top color no
+   matter how hard you push heatmap-intensity). At a high setting, every stop is
+   divided by a factor >1, so the ramp reaches its hottest colors at a much lower
+   raw density — the hot tones "pop" across more of the facility. At a low setting
+   the stops are pushed out past 1 and collapse, so only the coolest/transparent
+   end of the ramp ever shows — the field reads muted. */
+function heatColorExpr(){
+  const raw = HEAT_PALETTES[mapViewState.heatPalette] || HEAT_PALETTES.classic;
+  const header = raw.slice(0, 3);
+  const stops = [];
+  for (let i = 3; i < raw.length; i += 2) stops.push([raw[i], raw[i + 1]]);
+  const f = Math.max(0.2, mapViewState.heatIntensity);
+  let prev = -1;
+  const scaled = [];
+  stops.forEach(([d, c]) => {
+    const nd = Math.max(0, Math.min(1, d / f));
+    if (nd <= prev) {
+      if (scaled.length) scaled[scaled.length - 1] = c; /* collapsed stop — keep the hottest color at this density */
+      return;
+    }
+    prev = nd;
+    scaled.push(nd, c);
+  });
+  return [...header, ...scaled];
+}
+
+/* Quadratic-bezier curve between two geo points (lng/lat space — area is small so linear interpolation is a fine approximation) */
+function bezierCoords(lng1, lat1, lng2, lat2, bulge){
+  const mx = (lng1+lng2)/2, my = (lat1+lat2)/2 + (bulge!==undefined?bulge:0.0008);
+  const steps = 24, coords = [];
+  for (let i=0; i<=steps; i++){
+    const t = i/steps;
+    const lng = (1-t)*(1-t)*lng1 + 2*(1-t)*t*mx + t*t*lng2;
+    const lat = (1-t)*(1-t)*lat1 + 2*(1-t)*t*my + t*t*lat2;
+    coords.push([lng,lat]);
+  }
+  return coords;
+}
+
+const BUILDINGS = {
+  type:'FeatureCollection',
+  features:[
+    {type:'Feature',properties:{name:'CALDERAS',height:18,color:'#0E3A42',outline:'#1A6A72',zone:'utilities'},geometry:{type:'Polygon',coordinates:[[[-75.5000,10.3190],[-75.4985,10.3190],[-75.4985,10.3180],[-75.5000,10.3180],[-75.5000,10.3190]]]}},
+    {type:'Feature',properties:{name:'DEST. ATMOSFÉRICA (CDU)',height:25,color:'#1A2E38',outline:'#2A5A60',zone:'distillation'},geometry:{type:'Polygon',coordinates:[[[-75.4983,10.3173],[-75.4963,10.3173],[-75.4963,10.3160],[-75.4983,10.3160],[-75.4983,10.3173]]]}},
+    {type:'Feature',properties:{name:'DEST. AL VACÍO (VDU)',height:22,color:'#1E3240',outline:'#2E6268',zone:'distillation'},geometry:{type:'Polygon',coordinates:[[[-75.4983,10.3158],[-75.4968,10.3158],[-75.4968,10.3148],[-75.4983,10.3148],[-75.4983,10.3158]]]}},
+    {type:'Feature',properties:{name:'FCC',height:28,color:'#2A1A18',outline:'#6A3A28',zone:'conversion'},geometry:{type:'Polygon',coordinates:[[[-75.4960,10.3178],[-75.4945,10.3178],[-75.4945,10.3165],[-75.4960,10.3165],[-75.4960,10.3178]]]}},
+    {type:'Feature',properties:{name:'HIDROCRAQUEO',height:26,color:'#282030',outline:'#5A3A60',zone:'conversion'},geometry:{type:'Polygon',coordinates:[[[-75.4943,10.3175],[-75.4930,10.3175],[-75.4930,10.3164],[-75.4943,10.3164],[-75.4943,10.3175]]]}},
+    {type:'Feature',properties:{name:'COQUIZACIÓN',height:24,color:'#2A2018',outline:'#5A3828',zone:'conversion'},geometry:{type:'Polygon',coordinates:[[[-75.4960,10.3163],[-75.4947,10.3163],[-75.4947,10.3152],[-75.4960,10.3152],[-75.4960,10.3163]]]}},
+    {type:'Feature',properties:{name:'TORRES ENFRIAMIENTO',height:30,color:'#0C2838',outline:'#1A5878',zone:'cooling'},geometry:{type:'Polygon',coordinates:[[[-75.4928,10.3193],[-75.4912,10.3193],[-75.4912,10.3180],[-75.4928,10.3180],[-75.4928,10.3193]]]}},
+    {type:'Feature',properties:{name:'PLANTA H₂',height:18,color:'#1A3040',outline:'#2A5868',zone:'utilities'},geometry:{type:'Polygon',coordinates:[[[-75.4945,10.3150],[-75.4932,10.3150],[-75.4932,10.3141],[-75.4945,10.3141],[-75.4945,10.3150]]]}},
+    {type:'Feature',properties:{name:'PLANTA AZUFRE',height:16,color:'#2A2830',outline:'#4A4038',zone:'treating'},geometry:{type:'Polygon',coordinates:[[[-75.4965,10.3148],[-75.4950,10.3148],[-75.4950,10.3139],[-75.4965,10.3139],[-75.4965,10.3148]]]}},
+    {type:'Feature',properties:{name:'HIDROTRATAMIENTO',height:20,color:'#1E2E38',outline:'#3A5A60',zone:'treating'},geometry:{type:'Polygon',coordinates:[[[-75.4965,10.3138],[-75.4947,10.3138],[-75.4947,10.3128],[-75.4965,10.3128],[-75.4965,10.3138]]]}},
+    {type:'Feature',properties:{name:'PLANTA ELÉCTRICA',height:14,color:'#1A2828',outline:'#2A4840',zone:'utilities'},geometry:{type:'Polygon',coordinates:[[[-75.4930,10.3140],[-75.4918,10.3140],[-75.4918,10.3130],[-75.4930,10.3130],[-75.4930,10.3140]]]}},
+    {type:'Feature',properties:{name:'ADMINISTRACIÓN',height:10,color:'#182830',outline:'#284A50',zone:'services'},geometry:{type:'Polygon',coordinates:[[[-75.5018,10.3130],[-75.5005,10.3130],[-75.5005,10.3120],[-75.5018,10.3120],[-75.5018,10.3130]]]}},
+    {type:'Feature',properties:{name:'SERVICIOS IND.',height:14,color:'#142830',outline:'#1E4A48',zone:'services'},geometry:{type:'Polygon',coordinates:[[[-75.4998,10.3138],[-75.4983,10.3138],[-75.4983,10.3128],[-75.4998,10.3128],[-75.4998,10.3138]]]}},
+    {type:'Feature',properties:{name:'TERMINAL MARÍTIMO',height:8,color:'#162428',outline:'#264040',zone:'port'},geometry:{type:'Polygon',coordinates:[[[-75.4918,10.3150],[-75.4905,10.3150],[-75.4905,10.3140],[-75.4918,10.3140],[-75.4918,10.3150]]]}},
+  ]
+};
+
+const PIPES = {
+  type:'FeatureCollection',
+  features:[
+    {type:'Feature',properties:{name:'Red de Vapor'},geometry:{type:'LineString',coordinates:[[-75.4993,10.3185],[-75.4980,10.3183],[-75.4970,10.3176],[-75.4955,10.3174],[-75.4940,10.3172],[-75.4928,10.3173]]}},
+    {type:'Feature',properties:{name:'Condensado'},geometry:{type:'LineString',coordinates:[[-75.4993,10.3178],[-75.4990,10.3170],[-75.4985,10.3158],[-75.4980,10.3150]]}},
+    {type:'Feature',properties:{name:'Crudo / Producto'},geometry:{type:'LineString',coordinates:[[-75.4975,10.3170],[-75.4965,10.3168],[-75.4955,10.3168],[-75.4945,10.3170],[-75.4935,10.3168]]}},
+    {type:'Feature',properties:{name:'Hidrógeno'},geometry:{type:'LineString',coordinates:[[-75.4938,10.3148],[-75.4945,10.3153],[-75.4950,10.3160],[-75.4953,10.3165]]}},
+    {type:'Feature',properties:{name:'Línea de Azufre'},geometry:{type:'LineString',coordinates:[[-75.4955,10.3158],[-75.4958,10.3150],[-75.4958,10.3145]]}},
+  ]
+};
+
+const ZONES = [
+  {name:'Utilities',color:'rgba(0,80,90,0.12)',outline:'rgba(0,174,192,0.18)',coords:[[-75.5003,10.3193],[-75.4982,10.3193],[-75.4982,10.3177],[-75.5003,10.3177]]},
+  {name:'Destilación',color:'rgba(80,60,0,0.10)',outline:'rgba(255,138,61,0.18)',coords:[[-75.4985,10.3175],[-75.4960,10.3175],[-75.4960,10.3146],[-75.4985,10.3146]]},
+  {name:'Conversión',color:'rgba(100,30,0,0.10)',outline:'rgba(240,71,154,0.18)',coords:[[-75.4962,10.3180],[-75.4927,10.3180],[-75.4927,10.3150],[-75.4962,10.3150]]},
+  {name:'Enfriamiento',color:'rgba(0,40,100,0.10)',outline:'rgba(96,165,250,0.18)',coords:[[-75.4930,10.3196],[-75.4910,10.3196],[-75.4910,10.3178],[-75.4930,10.3178]]},
+  {name:'Tratamiento',color:'rgba(60,40,80,0.10)',outline:'rgba(180,130,200,0.15)',coords:[[-75.4967,10.3150],[-75.4945,10.3150],[-75.4945,10.3126],[-75.4967,10.3126]]},
+  {name:'Servicios',color:'rgba(0,60,50,0.08)',outline:'rgba(207,232,78,0.12)',coords:[[-75.5020,10.3140],[-75.4980,10.3140],[-75.4980,10.3118],[-75.5020,10.3118]]},
+];
+
+const ROADS = [
+  // Main E-W corridors
+  {w:3,coords:[[-75.5035,10.3176],[-75.4900,10.3176]]},
+  {w:2.5,coords:[[-75.5035,10.3152],[-75.4900,10.3152]]},
+  {w:2,coords:[[-75.5035,10.3127],[-75.4900,10.3127]]},
+  // Main N-S corridors
+  {w:2.5,coords:[[-75.5002,10.3198],[-75.5002,10.3108]]},
+  {w:2,coords:[[-75.4962,10.3198],[-75.4962,10.3108]]},
+  {w:1.5,coords:[[-75.4930,10.3198],[-75.4930,10.3108]]},
+  // Secondary access roads
+  {w:1.2,coords:[[-75.4945,10.3198],[-75.4945,10.3150]]},
+  {w:1.2,coords:[[-75.5035,10.3195],[-75.4900,10.3195]]},
+];
+
+/* ═══════════════════════════════════════════════════
+   DATA — All from specification
+   ═══════════════════════════════════════════════════ */
+const SOURCES = {
+  F1:{id:'F1',name:'Vapor LP excedente',type:'Vapor',tempRange:'120-180',tempMin:120,tempMax:180,power:12,continuity:'Alta',location:'Calderas / utilities',lng:-75.4991,lat:10.3182},
+  F2:{id:'F2',name:'Condensado caliente',type:'Liquido',tempRange:'80-110',tempMin:80,tempMax:110,power:6,continuity:'Alta',location:'Retorno de condensado',lng:-75.4993,lat:10.3168},
+  F3:{id:'F3',name:'Gases calientes FCC',type:'Gas',tempRange:'180-300',tempMin:180,tempMax:300,power:15,continuity:'Media',location:'Craqueo Catalítico (FCC)',lng:-75.4953,lat:10.3168},
+  F4:{id:'F4',name:'Agua caliente enfriamiento',type:'Agua',tempRange:'35-55',tempMin:35,tempMax:55,power:20,continuity:'Alta',location:'Torres de enfriamiento',lng:-75.4920,lat:10.3186},
+  F5:{id:'F5',name:'Purgas de vapor',type:'Vapor',tempRange:'100-160',tempMin:100,tempMax:160,power:3,continuity:'Variable',location:'Red de vapor',lng:-75.4985,lat:10.3182},
+  F6:{id:'F6',name:'Corriente liquida caliente',type:'Liquido',tempRange:'100-150',tempMin:100,tempMax:150,power:10,continuity:'Alta',location:'Unidad de Crudo (CDU)',lng:-75.4979,lat:10.3162},
+  F7:{id:'F7',name:'Calor de compresores',type:'Aire/agua',tempRange:'60-90',tempMin:60,tempMax:90,power:4,continuity:'Alta',location:'Servicios industriales',lng:-75.4990,lat:10.3135},
+  F8:{id:'F8',name:'Calor disperso viscorreducción',type:'Mixto',tempRange:'40-80',tempMin:40,tempMax:80,power:8,continuity:'Variable',location:'Viscorreducción',lng:-75.4945,lat:10.3164},
+};
+
+const DEMANDS = {
+  D1:{id:'D1',name:'Agua helada edificios',type:'Frio',tempRange:'7-12',tempReq:10,power:2,location:'Edificio administrativo',lng:-75.5010,lat:10.3125},
+  D2:{id:'D2',name:'Salas de control',type:'Frio',tempRange:'7-12',tempReq:10,power:1,location:'Unidad de Crudo (CDU)',lng:-75.4979,lat:10.3162},
+  D3:{id:'D3',name:'Subestaciones',type:'Frio/clima',tempRange:'18-24',tempReq:21,power:0.8,location:'Subestación eléctrica',lng:-75.4924,lat:10.3135},
+  D4:{id:'D4',name:'Precalentamiento agua',type:'Calor util',tempRange:'60-90',tempReq:75,power:4,location:'Calderas',lng:-75.4995,lat:10.3183},
+  D5:{id:'D5',name:'Corriente fria proceso',type:'Calor proceso',tempRange:'100-150',tempReq:125,power:8,location:'Unidad de Crudo (CDU)',lng:-75.4978,lat:10.3164},
+  D6:{id:'D6',name:'Electricidad auxiliar',type:'Electricidad',tempRange:'>150',tempReq:150,power:1,location:'Servicios industriales',lng:-75.4992,lat:10.3131},
+  D7:{id:'D7',name:'Confort terminal marítimo',type:'Frio',tempRange:'7-12',tempReq:10,power:1.5,location:'Terminal marítimo',lng:-75.4912,lat:10.3145},
+};
+
+const TECHS = [
+  {id:'T1',name:'Chiller de absorcion',route:'Frio',product:'Agua helada / TR',maturity:'Alta',capexPerMW:800000},
+  {id:'T2',name:'ORC',route:'Electricidad',product:'kWh electrico',maturity:'Media-alta',capexPerMW:1500000},
+  {id:'T3',name:'Intercambiador de calor',route:'Recuperacion directa',product:'Calor de proceso',maturity:'Alta',capexPerMW:300000},
+  {id:'T4',name:'Bomba de calor industrial',route:'Calor valorizado',product:'Agua caliente / calor util',maturity:'Media-alta',capexPerMW:900000},
+  {id:'T5',name:'Recuperacion de condensado',route:'Calor util',product:'Ahorro de agua y vapor',maturity:'Alta',capexPerMW:200000},
+  {id:'T6',name:'Sensorica clamp-on',route:'Medicion',product:'Datos y perdidas',maturity:'Alta',capexPerMW:50000},
+  {id:'T7',name:'Dashboard energetico',route:'Medicion/analitica',product:'Cifra auditable',maturity:'Alta',capexPerMW:30000},
+];
+
+const COMPAT = {
+  F1:[3,2,2,1,2,3], F2:[1,1,3,2,3,2], F3:[2,3,3,1,1,2],
+  F4:[2,1,2,3,1,2], F5:[1,1,2,1,3,3], F6:[2,1,3,2,1,2],
+  F7:[1,1,2,3,1,2], F8:[1,1,2,2,1,2],
+};
+
+const MODELS = [
+  {id:'M1',name:'CAPEX directo',desc:'Cliente compra e implementa',invCliente:'Alta',riesgoProv:'Bajo',pagoResultado:'No siempre'},
+  {id:'M2',name:'ESCO',desc:'Pago por ahorro real verificado',invCliente:'Baja/cero',riesgoProv:'Alto',pagoResultado:'Si'},
+  {id:'M3',name:'BOOT',desc:'Tercero financia, construye, opera y transfiere',invCliente:'Cero',riesgoProv:'Alto',pagoResultado:'Parcial'},
+  {id:'M4',name:'EaaS',desc:'Energy as a Service',invCliente:'Cero',riesgoProv:'Alto',pagoResultado:'Parcial'},
+  {id:'M5',name:'CaaS',desc:'Cooling as a Service',invCliente:'Cero',riesgoProv:'Alto',pagoResultado:'Parcial'},
+  {id:'M6',name:'Suscripcion',desc:'Pago periodico por punto medido',invCliente:'Baja',riesgoProv:'Medio',pagoResultado:'No siempre'},
+  {id:'M7',name:'Pago por desempeno',desc:'Pago variable asociado a KPIs',invCliente:'Baja',riesgoProv:'Alto',pagoResultado:'Si'},
+];
+
+const WEIGHTS = {potencial:.20,temperatura:.15,continuidad:.15,cercania:.10,ahorro:.15,facilidad:.10,capex:.10,co2:.05};
+
+const PRELOADED = [
+  {id:'OT-001',sourceId:'F1',demandId:'D2',techIdx:0,modelIdx:2,score:4.5,scores:{potencial:5,temperatura:4,continuidad:5,cercania:3,ahorro:5,facilidad:4,capex:4,co2:5}},
+  {id:'OT-002',sourceId:'F2',demandId:'D4',techIdx:2,modelIdx:1,score:4.4,scores:{potencial:4,temperatura:5,continuidad:5,cercania:4,ahorro:5,facilidad:4,capex:4,co2:4}},
+  {id:'OT-003',sourceId:'F3',demandId:'D5',techIdx:2,modelIdx:1,score:3.9,scores:{potencial:5,temperatura:4,continuidad:3,cercania:3,ahorro:4,facilidad:3,capex:4,co2:4}},
+  {id:'OT-004',sourceId:'F4',demandId:'D1',techIdx:3,modelIdx:2,score:3.1,scores:{potencial:4,temperatura:2,continuidad:4,cercania:2,ahorro:3,facilidad:2,capex:3,co2:4}},
+  {id:'OT-005',sourceId:'F5',demandId:'D4',techIdx:4,modelIdx:6,score:4.0,scores:{potencial:3,temperatura:4,continuidad:3,cercania:4,ahorro:4,facilidad:5,capex:5,co2:3}},
+  {id:'OT-006',sourceId:'F6',demandId:'D5',techIdx:2,modelIdx:1,score:4.2,scores:{potencial:5,temperatura:4,continuidad:5,cercania:5,ahorro:4,facilidad:3,capex:3,co2:4}},
+];
+
+/* ═══════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════ */
+let state = {
+  screen:'home',
+  selectedSource:null, selectedDemand:null,
+  selectedTech:null, selectedModel:null,
+  params:{eff:60,cost:50,hrs:8000,capex:100},
+  currentOpp:null,
+  portfolio:[],
+  unit:'MWt',
+  charts:{},
+  oppCounter:7,
+  mapReady:false,
+};
+
+/* ═══════════════════════════════════════════════════
+   SVG MAP INITIALIZATION
+   ═══════════════════════════════════════════════════ */
+function initMap(){
+  if (map) { setTimeout(() => map.resize(), 50); return; }
+
+  mapboxgl.accessToken = MAPBOX_TOKEN;
+
+  const centerLng = (GEO_BOUNDS.minLng + GEO_BOUNDS.maxLng) / 2;
+  const centerLat = (GEO_BOUNDS.minLat + GEO_BOUNDS.maxLat) / 2;
+
+  map = new mapboxgl.Map({
+    container: 'mapbox-map',
+    style: MAP_STYLES[mapViewState.styleMode].url,
+    center: [centerLng, centerLat],
+    zoom: 16.2,
+    pitch: 0,
+    attributionControl: false,
+  });
+
+  map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), 'top-right');
+  map.addControl(new mapboxgl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-right');
+  map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+
+  map.once('load', () => {
+    map.fitBounds(
+      [[GEO_BOUNDS.minLng, GEO_BOUNDS.minLat], [GEO_BOUNDS.maxLng, GEO_BOUNDS.maxLat]],
+      { padding: 24, duration: 0 }
+    );
+  });
+
+  /* Click / hover handling is bound to the map object itself and survives setStyle(),
+     since Mapbox filters events by layer id at dispatch time — register these ONCE. */
+  map.on('click', 'source-dot-layer', (e) => { if (e.features[0]) selectSource(e.features[0].properties.id); });
+  map.on('click', 'demand-dot-layer', (e) => { if (e.features[0]) selectDemand(e.features[0].properties.id); });
+
+  map.on('mouseenter', 'source-dot-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'source-dot-layer', () => {
+    map.getCanvas().style.cursor = '';
+    if (hoveredSourceId !== null) map.setFeatureState({ source: 'source-points', id: hoveredSourceId }, { hover: false });
+    hoveredSourceId = null;
+  });
+  map.on('mousemove', 'source-dot-layer', (e) => {
+    if (!e.features.length) return;
+    if (hoveredSourceId !== null) map.setFeatureState({ source: 'source-points', id: hoveredSourceId }, { hover: false });
+    hoveredSourceId = e.features[0].id;
+    map.setFeatureState({ source: 'source-points', id: hoveredSourceId }, { hover: true });
+  });
+
+  map.on('mouseenter', 'demand-dot-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'demand-dot-layer', () => {
+    map.getCanvas().style.cursor = '';
+    if (hoveredDemandId !== null) map.setFeatureState({ source: 'demand-points', id: hoveredDemandId }, { hover: false });
+    hoveredDemandId = null;
+  });
+  map.on('mousemove', 'demand-dot-layer', (e) => {
+    if (!e.features.length) return;
+    if (hoveredDemandId !== null) map.setFeatureState({ source: 'demand-points', id: hoveredDemandId }, { hover: false });
+    hoveredDemandId = e.features[0].id;
+    map.setFeatureState({ source: 'demand-points', id: hoveredDemandId }, { hover: true });
+  });
+
+  /* style.load fires for the initial style AND every subsequent setStyle() call —
+     all custom sources/layers must be rebuilt each time since setStyle wipes them. */
+  map.on('style.load', () => {
+    rebuildCustomLayers();
+    if (!state.mapReady) state.mapReady = true;
+    startGlowPulse();
+  });
+}
+
+function rebuildCustomLayers(){
+  /* ── Zone overlays (fill + dashed outline) ── */
+  const zoneFeatures = ZONES.map(z => ({
+    type: 'Feature',
+    properties: { name: z.name, color: z.color, outline: z.outline },
+    geometry: { type: 'Polygon', coordinates: [[...z.coords, z.coords[0]]] }
+  }));
+  map.addSource('zones', { type: 'geojson', data: { type: 'FeatureCollection', features: zoneFeatures } });
+  map.addLayer({ id: 'zones-fill', type: 'fill', source: 'zones', paint: { 'fill-color': ['get', 'color'] } });
+  map.addLayer({ id: 'zones-outline', type: 'line', source: 'zones', paint: { 'line-color': ['get', 'outline'], 'line-width': 1.5, 'line-dasharray': [2, 1] } });
+
+  /* ── Zone labels ── */
+  const zoneLabelFeatures = ZONES.map(z => {
+    const cx = (z.coords[0][0] + z.coords[2][0]) / 2;
+    const cy = z.coords[0][1] - 0.0003;
+    return { type: 'Feature', properties: { name: z.name.toUpperCase() }, geometry: { type: 'Point', coordinates: [cx, cy] } };
+  });
+  map.addSource('zone-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: zoneLabelFeatures } });
+  map.addLayer({
+    id: 'zone-labels-layer', type: 'symbol', source: 'zone-labels',
+    layout: { 'text-field': ['get', 'name'], 'text-size': 9, 'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-letter-spacing': 0.08, 'text-allow-overlap': true },
+    paint: { 'text-color': 'rgba(255,255,255,0.6)', 'text-halo-color': 'rgba(0,0,0,0.55)', 'text-halo-width': 1.2 }
+  });
+
+  /* ── 3D solids: OUR OWN building footprints + real heights (OSM has no footprint/height
+     data for this industrial site, so the generic composite 'building' source is empty here) ── */
+  map.addSource('building-solids', { type: 'geojson', data: BUILDINGS });
+  map.addLayer({
+    id: 'building-solids-layer', type: 'fill-extrusion', source: 'building-solids',
+    layout: { visibility: mapViewState.is3D ? 'visible' : 'none' },
+    paint: {
+      'fill-extrusion-color': ['get', 'color'],
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': 0.9
+    }
+  });
+
+  /* ── Building labels (drawn above the extrusions) ── */
+  const buildingLabelFeatures = BUILDINGS.features.map(f => {
+    const c = f.geometry.coordinates[0];
+    const cx = (c[0][0] + c[2][0]) / 2, cy = (c[0][1] + c[2][1]) / 2;
+    return { type: 'Feature', properties: { name: f.properties.name }, geometry: { type: 'Point', coordinates: [cx, cy] } };
+  });
+  map.addSource('building-labels', { type: 'geojson', data: { type: 'FeatureCollection', features: buildingLabelFeatures } });
+  map.addLayer({
+    id: 'building-labels-layer', type: 'symbol', source: 'building-labels',
+    layout: { 'text-field': ['get', 'name'], 'text-size': 9.5, 'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'], 'text-letter-spacing': 0.02, 'text-allow-overlap': false },
+    paint: { 'text-color': 'rgba(230,240,242,0.92)', 'text-halo-color': 'rgba(5,20,23,0.85)', 'text-halo-width': 1.4 }
+  });
+
+  /* ── Flow line source + layers (populated by drawFlowLine) ── */
+  map.addSource('flow-line', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'flow-line-glow', type: 'line', source: 'flow-line', paint: { 'line-color': '#00AEC0', 'line-width': 10, 'line-opacity': 0.15, 'line-blur': 3 } });
+  map.addLayer({ id: 'flow-line-main', type: 'line', source: 'flow-line', paint: { 'line-color': '#00AEC0', 'line-width': 2.5, 'line-dasharray': [0, 4, 3], 'line-opacity': 0.9 } });
+
+  /* ── Compatible source↔demand connections (toggle) ── */
+  map.addSource('connections', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({
+    id: 'connections-layer', type: 'line', source: 'connections',
+    layout: { visibility: mapViewState.connectionsOn ? 'visible' : 'none' },
+    paint: { 'line-color': '#CFE84E', 'line-width': 1.4, 'line-opacity': 0.55, 'line-dasharray': [1, 2] }
+  });
+
+  /* ── Thermal heatmap (toggle) — covers the whole facility, not just the 8 source points:
+     sources contribute by real temperature, demands by a damped temp, and every building
+     by a zone-based ambient baseline so the field reads as continuous across the plant. */
+  map.addSource('heat-points', { type: 'geojson', data: buildHeatGeoJSON() });
+  map.addLayer({
+    id: 'heat-layer', type: 'heatmap', source: 'heat-points', maxzoom: 20,
+    layout: { visibility: mapViewState.heatmapOn ? 'visible' : 'none' },
+    paint: {
+      'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 300, 1],
+      'heatmap-intensity': heatIntensityExpr(),
+      'heatmap-color': heatColorExpr(),
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 14, 55, 18, 110],
+      'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 16, 0.85, 19, 0.55]
+    }
+  });
+
+  /* ── Source / demand points as native circle+symbol layers (locked to the WebGL
+     render pipeline — no DOM/canvas desync, so they never drift during zoom/pan) ── */
+  map.addSource('source-points', { type: 'geojson', data: buildPointsGeoJSON(SOURCES) });
+  map.addSource('demand-points', { type: 'geojson', data: buildPointsGeoJSON(DEMANDS) });
+
+  map.addLayer({
+    id: 'source-glow', type: 'circle', source: 'source-points',
+    paint: { 'circle-radius': 14, 'circle-color': '#FF8A3D', 'circle-opacity': 0.35, 'circle-blur': 0.6 }
+  });
+  map.addLayer({
+    id: 'source-dot-layer', type: 'circle', source: 'source-points',
+    paint: {
+      'circle-radius': ['case', ['boolean', ['feature-state', 'selected'], false], 12.5, ['boolean', ['feature-state', 'hover'], false], 11.5, 10],
+      'circle-color': '#FF8A3D',
+      'circle-stroke-color': 'rgba(255,220,180,0.85)',
+      'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2.5, 1.5]
+    }
+  });
+  map.addLayer({
+    id: 'source-label-layer', type: 'symbol', source: 'source-points',
+    layout: {
+      'text-field': ['format', ['get', 'id'], { 'font-scale': 1.05 }, '\n', {}, ['get', 'name'], { 'font-scale': 0.72 }],
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-size': 10.5,
+      'text-anchor': 'top', 'text-offset': [0, 1.15], 'text-allow-overlap': false, 'text-optional': true,
+      'text-max-width': 9
+    },
+    paint: { 'text-color': '#fff', 'text-halo-color': 'rgba(5,20,23,0.85)', 'text-halo-width': 1.3 }
+  });
+
+  map.addLayer({
+    id: 'demand-glow', type: 'circle', source: 'demand-points',
+    paint: { 'circle-radius': 14, 'circle-color': '#60A5FA', 'circle-opacity': 0.35, 'circle-blur': 0.6 }
+  });
+  map.addLayer({
+    id: 'demand-dot-layer', type: 'circle', source: 'demand-points',
+    paint: {
+      'circle-radius': ['case', ['boolean', ['feature-state', 'selected'], false], 12.5, ['boolean', ['feature-state', 'hover'], false], 11.5, 10],
+      'circle-color': '#60A5FA',
+      'circle-stroke-color': 'rgba(180,210,255,0.85)',
+      'circle-stroke-width': ['case', ['boolean', ['feature-state', 'selected'], false], 2.5, 1.5]
+    }
+  });
+  map.addLayer({
+    id: 'demand-label-layer', type: 'symbol', source: 'demand-points',
+    layout: {
+      'text-field': ['format', ['get', 'id'], { 'font-scale': 1.05 }, '\n', {}, ['get', 'name'], { 'font-scale': 0.72 }],
+      'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'], 'text-size': 10.5,
+      'text-anchor': 'top', 'text-offset': [0, 1.15], 'text-allow-overlap': false, 'text-optional': true,
+      'text-max-width': 9
+    },
+    paint: { 'text-color': '#fff', 'text-halo-color': 'rgba(5,20,23,0.85)', 'text-halo-width': 1.3 }
+  });
+
+  setLayerSetVisible('source', !mapViewState.heatmapOn);
+  setLayerSetVisible('demand', !mapViewState.heatmapOn);
+
+  /* ── Restore toggled state after a style switch ── */
+  if (mapViewState.connectionsOn) renderAllConnections();
+  if (state.selectedSource && state.selectedDemand) drawFlowLine();
+  if (state.selectedSource) highlightMarker(state.selectedSource.id, 'source');
+  if (state.selectedDemand) highlightMarker(state.selectedDemand.id, 'demand');
+}
+
+function buildPointsGeoJSON(dict){
+  return {
+    type: 'FeatureCollection',
+    features: Object.values(dict).map(item => ({
+      type: 'Feature', id: item.id,
+      properties: { id: item.id, name: item.name },
+      geometry: { type: 'Point', coordinates: [item.lng, item.lat] }
+    }))
+  };
+}
+
+function setLayerSetVisible(type, visible){
+  if (!map) return;
+  ['glow', 'dot-layer', 'label-layer'].forEach(suffix => {
+    const id = `${type}-${suffix}`;
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+  });
+}
+
+function startGlowPulse(){
+  if (glowPulseRAF) return; /* already running */
+  function tick(){
+    glowPulsePhase += 0.035;
+    const r = 13 + Math.sin(glowPulsePhase) * 4.5;   /* 8.5–17.5 */
+    const o = 0.32 + Math.sin(glowPulsePhase) * 0.14; /* 0.18–0.46 */
+    if (map) {
+      if (map.getLayer('source-glow')) { map.setPaintProperty('source-glow', 'circle-radius', r); map.setPaintProperty('source-glow', 'circle-opacity', o); }
+      if (map.getLayer('demand-glow')) { map.setPaintProperty('demand-glow', 'circle-radius', r); map.setPaintProperty('demand-glow', 'circle-opacity', o); }
+    }
+    glowPulseRAF = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function buildHeatGeoJSON(){
+  const features = [];
+  Object.values(SOURCES).forEach(s => {
+    features.push({ type: 'Feature', properties: { weight: s.tempMax }, geometry: { type: 'Point', coordinates: [s.lng, s.lat] } });
+  });
+  Object.values(DEMANDS).forEach(d => {
+    features.push({ type: 'Feature', properties: { weight: d.tempReq * 0.3 }, geometry: { type: 'Point', coordinates: [d.lng, d.lat] } });
+  });
+  const ZONE_BASELINE = { utilities: 40, distillation: 45, conversion: 55, cooling: 15, treating: 28, services: 8, port: 10 };
+  BUILDINGS.features.forEach(f => {
+    const c = f.geometry.coordinates[0];
+    const cx = (c[0][0] + c[2][0]) / 2, cy = (c[0][1] + c[2][1]) / 2;
+    const w = ZONE_BASELINE[f.properties.zone] ?? 20;
+    features.push({ type: 'Feature', properties: { weight: w }, geometry: { type: 'Point', coordinates: [cx, cy] } });
+  });
+  return { type: 'FeatureCollection', features };
+}
+
+function renderAllConnections(){
+  if (!map || !map.getSource('connections')) return;
+  const features = PRELOADED.map(o => {
+    const s = SOURCES[o.sourceId], d = DEMANDS[o.demandId];
+    if (!s || !d) return null;
+    return { type: 'Feature', properties: { score: o.score }, geometry: { type: 'LineString', coordinates: bezierCoords(s.lng, s.lat, d.lng, d.lat, 0.0006) } };
+  }).filter(Boolean);
+  map.getSource('connections').setData({ type: 'FeatureCollection', features });
+}
+
+/* ═══════════════════════════════════════════════════
+   MAP TOOLBAR — style / heatmap / connections / 3D / tour
+   ═══════════════════════════════════════════════════ */
+function cycleMapStyle(){
+  if (!map) return;
+  const idx = STYLE_ORDER.indexOf(mapViewState.styleMode);
+  const next = STYLE_ORDER[(idx + 1) % STYLE_ORDER.length];
+  mapViewState.styleMode = next;
+  document.getElementById('tool-style-label').textContent = MAP_STYLES[next].label;
+  map.setStyle(MAP_STYLES[next].url);
+}
+
+function toggleHeatmap(){
+  if (!map) return;
+  mapViewState.heatmapOn = !mapViewState.heatmapOn;
+  if (map.getLayer('heat-layer')) map.setLayoutProperty('heat-layer', 'visibility', mapViewState.heatmapOn ? 'visible' : 'none');
+  setLayerSetVisible('source', !mapViewState.heatmapOn);
+  setLayerSetVisible('demand', !mapViewState.heatmapOn);
+  document.getElementById('tool-heatmap').classList.toggle('active', mapViewState.heatmapOn);
+  document.getElementById('heat-controls').classList.toggle('visible', mapViewState.heatmapOn);
+}
+
+function updateHeatIntensity(val){
+  mapViewState.heatIntensity = val / 100;
+  document.getElementById('heat-intensity-val').textContent = val + '%';
+  if (map && map.getLayer('heat-layer')) {
+    map.setPaintProperty('heat-layer', 'heatmap-intensity', heatIntensityExpr());
+    map.setPaintProperty('heat-layer', 'heatmap-color', heatColorExpr());
+  }
+}
+
+function setHeatPalette(key){
+  if (!HEAT_PALETTES[key]) return;
+  mapViewState.heatPalette = key;
+  document.querySelectorAll('.heat-swatch').forEach(b => b.classList.toggle('active', b.dataset.palette === key));
+  if (map && map.getLayer('heat-layer')) map.setPaintProperty('heat-layer', 'heatmap-color', heatColorExpr());
+}
+
+function toggleConnections(){
+  if (!map) return;
+  mapViewState.connectionsOn = !mapViewState.connectionsOn;
+  if (mapViewState.connectionsOn) renderAllConnections();
+  if (map.getLayer('connections-layer')) map.setLayoutProperty('connections-layer', 'visibility', mapViewState.connectionsOn ? 'visible' : 'none');
+  document.getElementById('tool-connections').classList.toggle('active', mapViewState.connectionsOn);
+}
+
+function toggle3D(){
+  if (!map) return;
+  mapViewState.is3D = !mapViewState.is3D;
+  map.easeTo({ pitch: mapViewState.is3D ? 55 : 0, duration: 700 });
+  if (map.getLayer('building-solids-layer')) map.setLayoutProperty('building-solids-layer', 'visibility', mapViewState.is3D ? 'visible' : 'none');
+  document.getElementById('tool-3d').classList.toggle('active', mapViewState.is3D);
+}
+
+function toggleTour(){
+  if (!map) return;
+  mapViewState.touring = !mapViewState.touring;
+  document.getElementById('tool-tour').classList.toggle('active', mapViewState.touring);
+  if (mapViewState.touring){
+    map.easeTo({ pitch: Math.max(map.getPitch(), 45), duration: 600 });
+    const step = () => {
+      if (!mapViewState.touring) return;
+      map.setBearing((map.getBearing() + 0.12) % 360);
+      tourRAF = requestAnimationFrame(step);
+    };
+    tourRAF = requestAnimationFrame(step);
+  } else {
+    if (tourRAF) cancelAnimationFrame(tourRAF);
+    tourRAF = null;
+    map.easeTo({ pitch: mapViewState.is3D ? 55 : 0, bearing: 0, duration: 600 });
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   MAP POPUP
+   ═══════════════════════════════════════════════════ */
+function showPopup(lng, lat, html) {
+  closePopup();
+  if (!map) return;
+  activePopup = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, offset: 18, className: 'gl-popup', maxWidth: '280px' })
+    .setLngLat([lng, lat])
+    .setHTML(html)
+    .addTo(map);
+}
+
+function closePopup() {
+  if (activePopup) { activePopup.remove(); activePopup = null; }
+}
+
+/* ═══════════════════════════════════════════════════
+   MAP MARKER HIGHLIGHTING
+   ═══════════════════════════════════════════════════ */
+function highlightMarker(id, type) {
+  if (!map) return;
+  const sourceId = type === 'source' ? 'source-points' : 'demand-points';
+  const data = type === 'source' ? SOURCES : DEMANDS;
+  if (!map.getSource(sourceId)) return;
+  Object.keys(data).forEach(k => {
+    map.setFeatureState({ source: sourceId, id: k }, { selected: k === id });
+  });
+}
+
+function clearMarkerHighlights(type) {
+  if (!map) return;
+  const sourceId = type === 'source' ? 'source-points' : 'demand-points';
+  const data = type === 'source' ? SOURCES : DEMANDS;
+  if (!map.getSource(sourceId)) return;
+  Object.keys(data).forEach(k => {
+    map.setFeatureState({ source: sourceId, id: k }, { selected: false });
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════ */
+function goScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.querySelectorAll('.step-pill').forEach(p=>{
+    p.classList.toggle('active',p.dataset.screen===name);
+  });
+  state.screen=name;
+  if(name==='portfolio') renderPortfolio();
+  document.getElementById('topnav').style.display=(name==='home'?'none':'flex');
+  window.scrollTo(0,0);
+}
+
+function startDemo(){
+  goScreen('map');
+  buildSourceList();
+  setTimeout(initMap, 100);
+}
+
+/* ═══════════════════════════════════════════════════
+   SOURCE / DEMAND SELECTION
+   ═══════════════════════════════════════════════════ */
+function buildSourceList(){
+  const el=document.getElementById('source-list');
+  el.innerHTML='';
+  Object.values(SOURCES).forEach(s=>{
+    const d=document.createElement('div');
+    d.className='source-card';
+    d.dataset.id=s.id;
+    d.onclick=()=>selectSource(s.id);
+    d.innerHTML=`<div class="name"><span class="tag tag-source">${s.id}</span> ${s.name}</div>
+      <div class="meta">${s.type} · ${s.tempRange} °C · ${formatPower(s.power)} · <span class="tag tag-${s.continuity.toLowerCase()}">${s.continuity}</span></div>`;
+    el.appendChild(d);
+  });
+}
+
+function selectSource(id){
+  state.selectedSource=SOURCES[id];
+  state.selectedDemand=null;
+  state.selectedTech=null;
+  state.selectedModel=null;
+  // Highlight in list
+  document.querySelectorAll('.source-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));
+  // Highlight map markers
+  highlightMarker(id, 'source');
+  clearMarkerHighlights('demand');
+  // Close any existing popup then show source popup
+  closePopup();
+  if(state.mapReady){
+    const s = SOURCES[id];
+    showPopup(s.lng, s.lat, buildPopupCard(s, 'source'));
+  }
+  activateStep(2);
+  buildDemandList();
+  clearFlowLines();
+  updateCalcButton();
+}
+
+function buildDemandList(){
+  const el=document.getElementById('demand-list');
+  el.innerHTML='';
+  Object.values(DEMANDS).forEach(d=>{
+    const card=document.createElement('div');
+    card.className='demand-card';
+    card.dataset.id=d.id;
+    card.onclick=()=>selectDemand(d.id);
+    card.innerHTML=`<div class="name"><span class="tag tag-demand">${d.id}</span> ${d.name}</div>
+      <div class="meta">${d.type} · ${d.tempRange} °C · ${formatPower(d.power)}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function selectDemand(id){
+  if(!state.selectedSource) return;
+  state.selectedDemand=DEMANDS[id];
+  state.selectedTech=null;
+  state.selectedModel=null;
+  document.querySelectorAll('.demand-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));
+  // Highlight map markers
+  highlightMarker(id, 'demand');
+  // Show demand popup
+  closePopup();
+  if(state.mapReady){
+    const d=DEMANDS[id];
+    showPopup(d.lng, d.lat, buildPopupCard(d, 'demand'));
+  }
+  drawFlowLine();
+  activateStep(3);
+  buildTechList();
+  updateCalcButton();
+}
+
+function buildTechList(){
+  const el=document.getElementById('tech-list');
+  el.innerHTML='';
+  const srcId=state.selectedSource.id;
+  const compat=COMPAT[srcId]||[2,2,2,2,2,2];
+  TECHS.forEach((t,i)=>{
+    if(i>=6) return;
+    const level=compat[i];
+    const cls=level===3?'tag-alta':level===2?'tag-media':'tag-baja';
+    const label=level===3?'Alta':level===2?'Media':'Baja';
+    const card=document.createElement('div');
+    card.className='tech-item';
+    card.dataset.idx=i;
+    card.onclick=()=>selectTech(i);
+    card.innerHTML=`<span class="compat-badge tag ${cls}">${label}</span>
+      <div class="name" style="font-size:13px;font-weight:600">${t.name}</div>
+      <div class="meta" style="font-size:11px;color:var(--fg2);margin-top:2px">${t.route} → ${t.product}</div>`;
+    el.appendChild(card);
+  });
+  [6].forEach(i=>{
+    const t=TECHS[i];
+    const card=document.createElement('div');
+    card.className='tech-item';
+    card.dataset.idx=i;
+    card.onclick=()=>selectTech(i);
+    card.innerHTML=`<span class="compat-badge tag tag-alta">Alta</span>
+      <div class="name" style="font-size:13px;font-weight:600">${t.name}</div>
+      <div class="meta" style="font-size:11px;color:var(--fg2);margin-top:2px">${t.route} → ${t.product}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function selectTech(idx){
+  state.selectedTech=TECHS[idx];
+  state.selectedModel=null;
+  document.querySelectorAll('.tech-item').forEach(c=>c.classList.toggle('selected',parseInt(c.dataset.idx)===idx));
+  activateStep(4);
+  buildModelList();
+  updateCalcButton();
+}
+
+function buildModelList(){
+  const el=document.getElementById('model-list');
+  el.innerHTML='';
+  MODELS.forEach((m,i)=>{
+    const card=document.createElement('div');
+    card.className='model-item';
+    card.dataset.idx=i;
+    card.onclick=()=>selectModel(i);
+    card.innerHTML=`<div class="name" style="font-size:13px;font-weight:600">${m.name}</div>
+      <div class="meta" style="font-size:11px;color:var(--fg2);margin-top:2px">${m.desc}</div>
+      <div class="meta" style="font-size:10px;color:var(--fg3);margin-top:2px">Inv. cliente: ${m.invCliente} · Riesgo prov: ${m.riesgoProv}</div>`;
+    el.appendChild(card);
+  });
+}
+
+function selectModel(idx){
+  state.selectedModel=MODELS[idx];
+  document.querySelectorAll('.model-item').forEach(c=>c.classList.toggle('selected',parseInt(c.dataset.idx)===idx));
+  activateStep(5);
+  updateCalcButton();
+}
+
+function activateStep(n){
+  for(let i=1;i<=5;i++){
+    const el=document.getElementById('cfg-step'+i);
+    if(i<n){el.className='config-section done-section';el.style.opacity='1';}
+    else if(i===n){el.className='config-section active-section';el.style.opacity='1';}
+    else{el.className='config-section';el.style.opacity='.5';}
+  }
+}
+
+function updateCalcButton(){
+  const btn=document.getElementById('btn-calculate');
+  btn.disabled=!(state.selectedSource&&state.selectedDemand&&state.selectedTech&&state.selectedModel);
+}
+
+function resetConfig(){
+  state.selectedSource=null;state.selectedDemand=null;state.selectedTech=null;state.selectedModel=null;
+  document.querySelectorAll('.source-card,.demand-card,.tech-item,.model-item').forEach(c=>c.classList.remove('selected'));
+  // Reset all marker highlights
+  clearMarkerHighlights('source');
+  clearMarkerHighlights('demand');
+  closePopup();
+  clearFlowLines();
+  for(let i=2;i<=5;i++){document.getElementById('cfg-step'+i).style.opacity='.5';document.getElementById('cfg-step'+i).className='config-section';}
+  document.getElementById('cfg-step1').className='config-section active-section';
+  document.getElementById('demand-list').innerHTML='<div class="empty-state" style="padding:12px"><span style="font-size:11px">Selecciona una fuente primero</span></div>';
+  document.getElementById('tech-list').innerHTML='<div class="empty-state" style="padding:12px"><span style="font-size:11px">Selecciona fuente y demanda</span></div>';
+  document.getElementById('model-list').innerHTML='<div class="empty-state" style="padding:12px"><span style="font-size:11px">Selecciona una tecnologia</span></div>';
+  updateCalcButton();
+}
+
+/* ═══════════════════════════════════════════════════
+   MAP FLOW LINES (SVG)
+   ═══════════════════════════════════════════════════ */
+function clearFlowLines(){
+  if (flowDashTimer) { clearInterval(flowDashTimer); flowDashTimer = null; }
+  if (map && map.getSource('flow-line')) {
+    map.getSource('flow-line').setData({ type: 'FeatureCollection', features: [] });
+  }
+}
+
+function drawFlowLine(){
+  clearFlowLines();
+  if(!state.selectedSource||!state.selectedDemand) return;
+  if(!state.mapReady||!map) return;
+  const s=state.selectedSource, d=state.selectedDemand;
+
+  // Simple great-circle-ish curve via a midpoint offset (lat/lng space; area is small so linear offset is fine)
+  const mx = (s.lng + d.lng) / 2;
+  const my = (s.lat + d.lat) / 2 + 0.0008;
+  const steps = 24;
+  const coords = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    // Quadratic bezier interpolation
+    const lng = (1-t)*(1-t)*s.lng + 2*(1-t)*t*mx + t*t*d.lng;
+    const lat = (1-t)*(1-t)*s.lat + 2*(1-t)*t*my + t*t*d.lat;
+    coords.push([lng, lat]);
+  }
+
+  map.getSource('flow-line').setData({
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } }]
+  });
+
+  flowDashStep = 0;
+  flowDashTimer = setInterval(() => {
+    flowDashStep = (flowDashStep + 1) % FLOW_DASH_SEQUENCE.length;
+    if (map.getLayer('flow-line-main')) {
+      map.setPaintProperty('flow-line-main', 'line-dasharray', FLOW_DASH_SEQUENCE[flowDashStep]);
+    }
+  }, 90);
+}
+
+/* ═══════════════════════════════════════════════════
+   SLIDERS & UNITS
+   ═══════════════════════════════════════════════════ */
+function updateSliders(){
+  state.params.eff=parseInt(document.getElementById('sl-eff').value);
+  state.params.cost=parseInt(document.getElementById('sl-cost').value);
+  state.params.hrs=parseInt(document.getElementById('sl-hrs').value);
+  state.params.capex=parseInt(document.getElementById('sl-capex').value);
+  document.getElementById('val-eff').textContent=state.params.eff+'%';
+  document.getElementById('val-cost').textContent='$'+state.params.cost+'/MWh';
+  document.getElementById('val-hrs').textContent=state.params.hrs+' h';
+  document.getElementById('val-capex').textContent=(state.params.capex/100).toFixed(1)+'x';
+}
+
+function formatPower(mw){
+  const u=state.unit;
+  const hrs=state.params.hrs;
+  if(u==='MWt') return mw.toFixed(1)+' MWt';
+  if(u==='GJ/ano') return (mw*3.6*hrs/1000).toFixed(0)+' GJ/a';
+  if(u==='TJ/ano') return (mw*3.6*hrs/1e6).toFixed(2)+' TJ/a';
+  if(u==='PJ/ano') return (mw*3.6*hrs/1e9).toFixed(4)+' PJ/a';
+  if(u==='MWh/ano') return (mw*hrs).toFixed(0)+' MWh/a';
+  if(u==='GWh/ano') return (mw*hrs/1000).toFixed(2)+' GWh/a';
+  return mw.toFixed(1)+' MWt';
+}
+
+/* ═══════════════════════════════════════════════════
+   POPUP MINI-DASHBOARD — temperature gauge + colored stats
+   ═══════════════════════════════════════════════════ */
+const TEMP_GAUGE_MAX = 320;
+const TEMP_GAUGE_STOPS = [
+  [0,   [59,130,246]],  /* blue  — cold   */
+  [60,  [6,182,212]],   /* cyan                */
+  [140, [207,232,78]],  /* lime                */
+  [220, [255,138,61]],  /* orange              */
+  [320, [239,68,68]],   /* red   — hot    */
+];
+function tempToColor(t){
+  const v = Math.max(0, Math.min(TEMP_GAUGE_MAX, t));
+  for (let i = 0; i < TEMP_GAUGE_STOPS.length - 1; i++){
+    const [v0, c0] = TEMP_GAUGE_STOPS[i], [v1, c1] = TEMP_GAUGE_STOPS[i + 1];
+    if (v >= v0 && v <= v1){
+      const f = (v - v0) / (v1 - v0);
+      const r = Math.round(c0[0] + (c1[0] - c0[0]) * f);
+      const g = Math.round(c0[1] + (c1[1] - c0[1]) * f);
+      const b = Math.round(c0[2] + (c1[2] - c0[2]) * f);
+      return `rgb(${r},${g},${b})`;
+    }
+  }
+  const last = TEMP_GAUGE_STOPS[TEMP_GAUGE_STOPS.length - 1][1];
+  return `rgb(${last[0]},${last[1]},${last[2]})`;
+}
+function tempGaugeGradient(){
+  return `linear-gradient(90deg, ${TEMP_GAUGE_STOPS.map(([v, c]) => `rgb(${c[0]},${c[1]},${c[2]}) ${(v / TEMP_GAUGE_MAX * 100).toFixed(1)}%`).join(', ')})`;
+}
+function tempPct(t){ return Math.max(0, Math.min(100, t / TEMP_GAUGE_MAX * 100)); }
+function continuityColor(c){
+  if (c === 'Alta') return 'var(--green)';
+  if (c === 'Media') return 'var(--yellow)';
+  return 'var(--red)';
+}
+
+function buildPopupCard(item, kind){
+  const accent = kind === 'source' ? '#FF8A3D' : '#60A5FA';
+  const isSource = kind === 'source';
+  let gaugeOverlay, gaugeLabelL, gaugeLabelR;
+  if (isSource){
+    const l = tempPct(item.tempMin), r = tempPct(item.tempMax);
+    gaugeOverlay = `<div class="pp-gauge-range" style="left:${l}%;width:${Math.max(r - l, 2)}%"></div>`;
+    gaugeLabelL = `${item.tempMin}°C`;
+    gaugeLabelR = `${item.tempMax}°C`;
+  } else {
+    const p = tempPct(item.tempReq);
+    gaugeOverlay = `<div class="pp-gauge-point" style="left:${p}%"></div>`;
+    gaugeLabelL = 'Requerido';
+    gaugeLabelR = `${item.tempReq}°C`;
+  }
+  const statsHtml = isSource
+    ? `<div class="pp-stat">
+         <div class="k">Potencia</div>
+         <div class="v" style="color:${accent}">${formatPower(item.power)}</div>
+       </div>
+       <div class="pp-stat">
+         <div class="k"><span class="pp-dot" style="background:${continuityColor(item.continuity)}"></span>Continuidad</div>
+         <div class="v">${item.continuity}</div>
+       </div>`
+    : `<div class="pp-stat">
+         <div class="k">Demanda</div>
+         <div class="v" style="color:${accent}">${formatPower(item.power)}</div>
+       </div>
+       <div class="pp-stat">
+         <div class="k">Tipo</div>
+         <div class="v" style="font-size:11px">${item.type}</div>
+       </div>`;
+  return `<div class="pp-card">
+    <div class="pp-head">
+      <div class="pp-id-badge" style="background:${accent}">${item.id}</div>
+      <div class="pp-head-text">
+        <div class="pp-name">${item.name}</div>
+        <div class="pp-type-row"><span class="tag tag-${kind}">${item.type}</span></div>
+      </div>
+    </div>
+    <div class="pp-body">
+      <div>
+        <div class="pp-gauge-label"><span>${gaugeLabelL}</span><span>${gaugeLabelR}</span></div>
+        <div class="pp-gauge-track" style="background:${tempGaugeGradient()}">${gaugeOverlay}</div>
+      </div>
+      <div class="pp-stats">${statsHtml}</div>
+      <div class="pp-loc">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s7-7.6 7-13a7 7 0 10-14 0c0 5.4 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        ${item.location}
+      </div>
+    </div>
+  </div>`;
+}
+
+function updateUnits(){
+  state.unit=document.getElementById('unit-select').value;
+  buildSourceList();
+  if(state.selectedSource){
+    document.querySelector(`.source-card[data-id="${state.selectedSource.id}"]`)?.classList.add('selected');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   CALCULATION ENGINE
+   ═══════════════════════════════════════════════════ */
+function calculate(source,demand,tech,model,params){
+  const eff=params.eff/100;
+  const Q_residual=source.power;
+  const Q_util=Q_residual*eff;
+  const E_annual_MWh=Q_util*params.hrs;
+  const E_annual_GJ=E_annual_MWh*3.6;
+  const savings_usd=E_annual_MWh*params.cost;
+  const capex=Q_util*tech.capexPerMW*(params.capex/100);
+  const payback=capex/savings_usd;
+  const co2=E_annual_MWh*0.5;
+  const esco_prov=savings_usd*0.3;
+  const esco_client=savings_usd-esco_prov;
+  const scores={
+    potencial: Math.min(5,Math.round(Q_residual/4)),
+    temperatura: source.tempMax>150?5:source.tempMax>100?4:source.tempMax>60?3:2,
+    continuidad: source.continuity==='Alta'?5:source.continuity==='Media'?3:2,
+    cercania: 3,
+    ahorro: savings_usd>3000000?5:savings_usd>1000000?4:savings_usd>500000?3:2,
+    facilidad: tech.maturity==='Alta'?4:3,
+    capex: payback<2?5:payback<4?4:payback<6?3:2,
+    co2: co2>5000?5:co2>2000?4:co2>500?3:2,
+  };
+  const totalScore=Object.entries(WEIGHTS).reduce((s,[k,w])=>s+(scores[k]||3)*w,0);
+  let risk='Medio';
+  if(totalScore>=4.2) risk='Bajo';
+  else if(totalScore<3) risk='Alto';
+  let priority='Media',action='Mantener en portafolio';
+  if(totalScore>=4.2){priority='Muy alta';action='Piloto prioritario';}
+  else if(totalScore>=3.5){priority='Alta';action='Prefactibilidad';}
+  else if(totalScore<2.8){priority='Baja';action='Evaluar despues';}
+  return {source,demand,tech,model,Q_residual,Q_util,E_annual_MWh,E_annual_GJ,savings_usd,capex,payback,co2,esco_prov,esco_client,scores,totalScore,risk,priority,action};
+}
+
+function calculateAndShow(){
+  if(!state.selectedSource||!state.selectedDemand||!state.selectedTech||!state.selectedModel) return;
+  state.currentOpp=calculate(state.selectedSource,state.selectedDemand,state.selectedTech,state.selectedModel,state.params);
+  renderDashboard(state.currentOpp);
+  goScreen('dashboard');
+}
+
+/* ═══════════════════════════════════════════════════
+   INDIVIDUAL DASHBOARD
+   ═══════════════════════════════════════════════════ */
+function renderDashboard(opp){
+  document.getElementById('dash-title').textContent=`${opp.source.name} → ${opp.demand.name}`;
+  document.getElementById('dash-subtitle').textContent=`${opp.tech.name} · Modelo ${opp.model.name}`;
+  const kpis=document.getElementById('dash-kpis');
+  kpis.innerHTML=[
+    {val:opp.Q_residual.toFixed(1)+' MWt',lbl:'Potencia Residual'},
+    {val:opp.Q_util.toFixed(1)+' MW',lbl:'Potencia Util'},
+    {val:fmtNum(opp.E_annual_MWh)+' MWh',lbl:'Energia Anual'},
+    {val:'USD '+fmtMoney(opp.savings_usd),lbl:'Ahorro Anual'},
+    {val:'USD '+fmtMoney(opp.capex),lbl:'CAPEX Estimado'},
+    {val:opp.payback.toFixed(1)+' anos',lbl:'Payback'},
+    {val:fmtNum(opp.co2)+' t',lbl:'CO2 Evitado/Ano'},
+    {val:opp.totalScore.toFixed(2),lbl:'Puntaje Total'},
+  ].map(k=>`<div class="kpi-card"><div class="val">${k.val}</div><div class="lbl">${k.lbl}</div></div>`).join('');
+  const lights=document.querySelectorAll('#risk-semaphore .sem-light');
+  lights.forEach(l=>l.classList.remove('on'));
+  if(opp.risk==='Bajo') lights[0].classList.add('on');
+  else if(opp.risk==='Medio') lights[1].classList.add('on');
+  else lights[2].classList.add('on');
+  const rl=document.getElementById('risk-label');
+  rl.textContent=opp.risk;
+  rl.style.color=opp.risk==='Bajo'?'var(--green)':opp.risk==='Medio'?'var(--yellow)':'var(--red)';
+  const sb=document.getElementById('dash-score-badge');
+  const sc=opp.totalScore>=4.2?'var(--green)':opp.totalScore>=3.5?'var(--teal)':opp.totalScore>=2.8?'var(--yellow)':'var(--red)';
+  sb.innerHTML=`<div class="opp-badge" style="border-color:${sc};color:${sc}">${opp.priority} — ${opp.action}</div>`;
+  renderRadarChart(opp);renderModelsChart(opp);renderSavingsChart(opp);renderSankey(opp);
+}
+
+function renderRadarChart(opp){
+  destroyChart('radar');
+  const ctx=document.getElementById('chart-radar').getContext('2d');
+  state.charts.radar=new Chart(ctx,{
+    type:'radar',
+    data:{labels:['Potencial','Temperatura','Continuidad','Cercania','Ahorro','Facilidad','CAPEX/Payback','CO2'],
+      datasets:[{label:'Puntaje',data:[opp.scores.potencial,opp.scores.temperatura,opp.scores.continuidad,opp.scores.cercania,opp.scores.ahorro,opp.scores.facilidad,opp.scores.capex,opp.scores.co2],
+        borderColor:'#00AEC0',backgroundColor:'rgba(0,174,192,.15)',pointBackgroundColor:'#00AEC0',borderWidth:2,pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:true,
+      scales:{r:{min:0,max:5,ticks:{stepSize:1,color:'#5A7A80',backdropColor:'transparent',font:{size:10}},grid:{color:'rgba(90,122,128,.2)'},pointLabels:{color:'#8CA8AD',font:{size:10}}}},
+      plugins:{legend:{display:false}}}
+  });
+}
+
+function renderModelsChart(opp){
+  destroyChart('models');
+  const ctx=document.getElementById('chart-models').getContext('2d');
+  const base=opp.savings_usd;
+  const data=MODELS.map(m=>{
+    if(m.name==='CAPEX directo') return base;
+    if(m.name==='ESCO') return base*0.7;
+    if(m.name==='BOOT') return base*0.65;
+    if(m.name==='EaaS'||m.name==='CaaS') return base*0.6;
+    if(m.name==='Suscripcion') return base*0.15;
+    return base*0.5;
+  });
+  state.charts.models=new Chart(ctx,{
+    type:'bar',data:{labels:MODELS.map(m=>m.name),
+      datasets:[{label:'Ahorro neto cliente (USD/ano)',data,backgroundColor:MODELS.map(m=>m.id===opp.model.id?'#F0479A':'rgba(0,174,192,.6)'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:true,indexAxis:'y',
+      scales:{x:{ticks:{color:'#8CA8AD',callback:v=>'$'+fmtMoney(v)},grid:{color:'rgba(90,122,128,.15)'}},y:{ticks:{color:'#8CA8AD',font:{size:10}},grid:{display:false}}},
+      plugins:{legend:{display:false}}}
+  });
+}
+
+function renderSavingsChart(opp){
+  destroyChart('savings');
+  const ctx=document.getElementById('chart-savings').getContext('2d');
+  state.charts.savings=new Chart(ctx,{
+    type:'doughnut',data:{labels:['Ahorro neto cliente','Pago proveedor (ESCO 30%)'],
+      datasets:[{data:[opp.esco_client,opp.esco_prov],backgroundColor:['#00AEC0','#FF8A3D'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{color:'#8CA8AD',font:{size:11},padding:12}}}}
+  });
+}
+
+function renderSankey(opp){
+  const el=document.getElementById('sankey-viz');
+  const w=el.clientWidth||320, h=160;
+  const srcW=120, midW=130, demW=120, gap=(w-srcW-midW-demW)/2;
+  const barH=40, topY=(h-barH)/2;
+  el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px">
+    <rect x="0" y="${topY}" width="${srcW}" height="${barH}" rx="6" fill="#FF8A3D"/>
+    <text x="${srcW/2}" y="${topY+barH/2+4}" text-anchor="middle" fill="#051417" font-size="10" font-weight="600" font-family="IBM Plex Sans">${opp.source.id}: ${opp.Q_residual} MWt</text>
+    <path d="M${srcW},${topY+barH/2} C${srcW+gap/2},${topY+barH/2} ${srcW+gap/2},${topY+barH/2} ${srcW+gap},${topY+barH/2}" stroke="#00AEC0" stroke-width="3" fill="none" opacity=".6"/>
+    <rect x="${srcW+gap}" y="${topY}" width="${midW}" height="${barH}" rx="6" fill="#00AEC0"/>
+    <text x="${srcW+gap+midW/2}" y="${topY+barH/2+4}" text-anchor="middle" fill="#051417" font-size="9" font-weight="600" font-family="IBM Plex Sans">${opp.tech.name.substring(0,18)}</text>
+    <path d="M${srcW+gap+midW},${topY+barH/2} C${srcW+gap+midW+gap/2},${topY+barH/2} ${srcW+gap+midW+gap/2},${topY+barH/2} ${srcW+gap*2+midW},${topY+barH/2}" stroke="#60A5FA" stroke-width="3" fill="none" opacity=".6"/>
+    <rect x="${srcW+gap*2+midW}" y="${topY}" width="${demW}" height="${barH}" rx="6" fill="#60A5FA"/>
+    <text x="${srcW+gap*2+midW+demW/2}" y="${topY+barH/2+4}" text-anchor="middle" fill="#051417" font-size="10" font-weight="600" font-family="IBM Plex Sans">${opp.demand.id}: ${opp.Q_util.toFixed(1)} MW</text>
+    <text x="${srcW+gap/2}" y="${topY-8}" text-anchor="middle" fill="#5A7A80" font-size="9" font-family="IBM Plex Sans">η=${(opp.Q_util/opp.Q_residual*100).toFixed(0)}%</text>
+  </svg>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   PORTFOLIO
+   ═══════════════════════════════════════════════════ */
+function addToPortfolio(){
+  if(!state.currentOpp) return;
+  const opp={...state.currentOpp, id:'OT-'+String(state.oppCounter++).padStart(3,'0')};
+  const dup=state.portfolio.find(p=>p.source.id===opp.source.id&&p.demand.id===opp.demand.id&&p.tech.id===opp.tech.id);
+  if(dup){
+    document.getElementById('btn-add-port').textContent='Ya existe en portafolio';
+    setTimeout(()=>document.getElementById('btn-add-port').textContent='Agregar al Portafolio',2000);
+    return;
+  }
+  state.portfolio.push(opp);
+  updatePortBadge();
+  document.getElementById('btn-add-port').textContent='Agregado ✓';
+  document.getElementById('btn-add-port').disabled=true;
+  setTimeout(()=>{document.getElementById('btn-add-port').textContent='Agregar al Portafolio';document.getElementById('btn-add-port').disabled=false;},2000);
+}
+
+function updatePortBadge(){document.getElementById('port-badge').textContent=state.portfolio.length;}
+
+function loadPreloaded(){
+  state.portfolio=[];state.oppCounter=7;
+  PRELOADED.forEach(p=>{
+    const src=SOURCES[p.sourceId], dem=DEMANDS[p.demandId];
+    const tech=TECHS[p.techIdx], model=MODELS[p.modelIdx];
+    const params={eff:60,cost:50,hrs:8000,capex:100};
+    const opp=calculate(src,dem,tech,model,params);
+    opp.id=p.id;opp.scores=p.scores;opp.totalScore=p.score;
+    opp.priority=p.score>=4.2?'Muy alta':p.score>=3.5?'Alta':p.score>=2.8?'Media':'Baja';
+    opp.action=p.score>=4.2?'Piloto prioritario':p.score>=3.5?'Prefactibilidad':p.score>=2.8?'Mantener':'Evaluar despues';
+    opp.risk=p.score>=4.2?'Bajo':p.score>=3.0?'Medio':'Alto';
+    state.portfolio.push(opp);
+  });
+  updatePortBadge();renderPortfolio();
+}
+
+function renderPortfolio(){
+  const p=state.portfolio;
+  const tbody=document.getElementById('port-tbody');
+  const empty=document.getElementById('port-empty');
+  const kpis=document.getElementById('port-kpis');
+  if(!p.length){tbody.innerHTML='';empty.style.display='block';kpis.innerHTML='';
+    destroyChart('portTech');destroyChart('portModel');destroyChart('funnel');destroyChart('bubble');return;}
+  empty.style.display='none';
+  const sorted=[...p].sort((a,b)=>b.totalScore-a.totalScore);
+  const totalMW=p.reduce((s,o)=>s+o.Q_residual,0);
+  const usefulMW=p.reduce((s,o)=>s+o.Q_util,0);
+  const totalSavings=p.reduce((s,o)=>s+o.savings_usd,0);
+  const totalE=p.reduce((s,o)=>s+o.E_annual_MWh,0);
+  const totalCO2=p.reduce((s,o)=>s+o.co2,0);
+  const pilotos=p.filter(o=>o.totalScore>=4.2).length;
+  kpis.innerHTML=[
+    {val:p.length,lbl:'Oportunidades'},{val:totalMW.toFixed(0)+' MWt',lbl:'Calor Residual'},
+    {val:usefulMW.toFixed(0)+' MW',lbl:'Calor Aprovechable'},{val:(totalE*3.6/1e6).toFixed(2)+' PJ/a',lbl:'Ahorro Energetico'},
+    {val:'USD '+fmtMoney(totalSavings),lbl:'Valor Economico/Ano'},{val:fmtNum(totalCO2)+' t',lbl:'CO2 Evitado/Ano'},
+    {val:pilotos,lbl:'Pilotos Prioritarios'},
+  ].map(k=>`<div class="kpi-card"><div class="val">${k.val}</div><div class="lbl">${k.lbl}</div></div>`).join('');
+  tbody.innerHTML=sorted.map(o=>{
+    const sc=o.totalScore>=4.2?'var(--green)':o.totalScore>=3.5?'var(--teal)':o.totalScore>=2.8?'var(--yellow)':'var(--red)';
+    const pct=(o.totalScore/5*100).toFixed(0);
+    return `<tr>
+      <td><strong>${o.id}</strong></td>
+      <td style="white-space:nowrap">${o.source.id}: ${o.source.name.substring(0,18)}</td>
+      <td style="white-space:nowrap">${o.demand.id}: ${o.demand.name.substring(0,18)}</td>
+      <td>${o.tech.name.substring(0,16)}</td><td>${o.model.name}</td>
+      <td class="mono">${o.Q_residual} MWt</td><td class="mono">$${fmtMoney(o.savings_usd)}</td>
+      <td class="mono">${o.payback.toFixed(1)}a</td>
+      <td><span class="score" style="color:${sc}">${o.totalScore.toFixed(1)}</span>
+        <div class="score-bar"><div class="score-bar-fill" style="width:${pct}%;background:${sc}"></div></div></td>
+      <td><span class="tag" style="background:color-mix(in srgb,${sc} 20%,transparent);color:${sc}">${o.priority}</span></td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:11px" onclick="viewOppFromPort('${o.id}')">Ver</button></td>
+    </tr>`;
+  }).join('');
+  renderPortTechChart(p);renderPortModelChart(p);renderFunnelChart(p);renderBubbleChart(p);
+}
+
+function viewOppFromPort(id){
+  const opp=state.portfolio.find(o=>o.id===id);
+  if(opp){state.currentOpp=opp;renderDashboard(opp);goScreen('dashboard');}
+}
+
+function renderPortTechChart(p){
+  destroyChart('portTech');
+  const ctx=document.getElementById('chart-port-tech').getContext('2d');
+  const techMap={};p.forEach(o=>{techMap[o.tech.name]=(techMap[o.tech.name]||0)+o.savings_usd;});
+  const labels=Object.keys(techMap),data=Object.values(techMap);
+  const colors=['#00AEC0','#FF8A3D','#F0479A','#CFE84E','#60A5FA','#4ADE80','#FACC15'];
+  state.charts.portTech=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{color:'#8CA8AD',callback:v=>'$'+fmtMoney(v)},grid:{color:'rgba(90,122,128,.15)'}},x:{ticks:{color:'#8CA8AD',font:{size:10}},grid:{display:false}}}}});
+}
+
+function renderPortModelChart(p){
+  destroyChart('portModel');
+  const ctx=document.getElementById('chart-port-model').getContext('2d');
+  const modelMap={};p.forEach(o=>{modelMap[o.model.name]=(modelMap[o.model.name]||0)+1;});
+  const labels=Object.keys(modelMap),data=Object.values(modelMap);
+  const colors=['#00AEC0','#FF8A3D','#F0479A','#CFE84E','#60A5FA','#4ADE80','#FACC15'];
+  state.charts.portModel=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'55%',
+      plugins:{legend:{position:'bottom',labels:{color:'#8CA8AD',font:{size:11},padding:10}}}}});
+}
+
+function renderFunnelChart(p){
+  destroyChart('funnel');
+  const ctx=document.getElementById('chart-funnel').getContext('2d');
+  const total=p.length,viable=p.filter(o=>o.totalScore>=2.8).length,alta=p.filter(o=>o.totalScore>=3.5).length,pilotos=p.filter(o=>o.totalScore>=4.2).length;
+  state.charts.funnel=new Chart(ctx,{type:'bar',
+    data:{labels:['Evaluadas','Viables (≥2.8)','Alta prioridad (≥3.5)','Pilotos (≥4.2)'],
+      datasets:[{data:[total,viable,alta,pilotos],backgroundColor:['#5A7A80','#FACC15','#00AEC0','#4ADE80'],borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:true,indexAxis:'y',
+      scales:{x:{ticks:{color:'#8CA8AD',stepSize:1},grid:{color:'rgba(90,122,128,.15)'}},y:{ticks:{color:'#8CA8AD',font:{size:11}},grid:{display:false}}},
+      plugins:{legend:{display:false}}}});
+}
+
+function renderBubbleChart(p){
+  destroyChart('bubble');
+  const ctx=document.getElementById('chart-bubble').getContext('2d');
+  const colors=['#00AEC0','#FF8A3D','#F0479A','#CFE84E','#60A5FA','#4ADE80'];
+  state.charts.bubble=new Chart(ctx,{type:'scatter',
+    data:{datasets:p.map((o,i)=>({label:o.id,data:[{x:o.capex/1e6,y:o.savings_usd/1e6}],
+      backgroundColor:colors[i%colors.length],pointRadius:Math.max(6,o.Q_residual),pointHoverRadius:Math.max(8,o.Q_residual+2)}))},
+    options:{responsive:true,maintainAspectRatio:true,
+      scales:{x:{title:{display:true,text:'CAPEX (M USD)',color:'#8CA8AD',font:{size:11}},ticks:{color:'#8CA8AD'},grid:{color:'rgba(90,122,128,.15)'}},
+        y:{title:{display:true,text:'Ahorro Anual (M USD)',color:'#8CA8AD',font:{size:11}},ticks:{color:'#8CA8AD'},grid:{color:'rgba(90,122,128,.15)'}}},
+      plugins:{legend:{position:'bottom',labels:{color:'#8CA8AD',font:{size:10},padding:8}}}}});
+}
+
+/* ═══════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════ */
+function destroyChart(key){if(state.charts[key]){state.charts[key].destroy();delete state.charts[key];}}
+function fmtNum(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'K':n.toFixed(0);}
+function fmtMoney(n){if(n>=1e6) return (n/1e6).toFixed(1)+'M';if(n>=1e3) return (n/1e3).toFixed(0)+'K';return n.toFixed(0);}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════ */
+Chart.defaults.color='#8CA8AD';
+Chart.defaults.borderColor='rgba(90,122,128,.15)';
+Chart.defaults.font.family="'IBM Plex Sans',system-ui,sans-serif";
+</script>

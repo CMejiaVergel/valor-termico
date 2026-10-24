@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vitrina-calor-rescatado",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3200
+    },
+    {
+      "name": "video-demo-hyperframes",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "hyperframes@0.8.155", "preview", "--port", "3002", "--no-open", "C:/Users/admin/Desktop/VOLTAC_DEV/_herramientas/motion-graphics/videos/mapa-termico-demo"],
+      "port": 3002
+    }
+  ]
+}
