@@ -690,7 +690,7 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
               </span>
             </p>
             <p className="mt-0.5 text-[10px] text-[#9B9BA1]">{e.base}</p>
-            <div className="cifra-tabular mt-1.5 grid grid-cols-4 gap-1 text-[10px] text-[#9B9BA1]">
+            <div className="cifra-tabular mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-[#9B9BA1]">
               <span>
                 Recuperado<b className="block text-[13px] text-white">{mw(e.mw)}</b>
               </span>
