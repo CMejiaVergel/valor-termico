@@ -42,4 +42,4 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - 10 pasos en 5 etapas (problema → diagnóstico → estructuración → decisión → ejecución), indicadores progresivos,
   panel interactivo por paso (paleta térmica, celda del cruce, tecnología, modelo, supuestos, portafolio), presentación
   automática y vista móvil.
-- Ojo: `next build` y `next dev` comparten `.next`; detener el servidor de desarrollo antes de compilar.
+- `next build` compila en `.next-build` (dev usa `.next`): ya se pueden correr a la vez. `vitrina-estatica` en launch.json sirve `out/` en el puerto 3201.

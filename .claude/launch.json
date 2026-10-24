@@ -8,6 +8,12 @@
       "port": 3200
     },
     {
+      "name": "vitrina-estatica",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "serve@14.2.4", "out", "-l", "3201"],
+      "port": 3201
+    },
+    {
       "name": "video-demo-hyperframes",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["--yes", "hyperframes@0.8.155", "preview", "--port", "3002", "--no-open", "C:/Users/admin/Desktop/VOLTAC_DEV/_herramientas/motion-graphics/videos/mapa-termico-demo"],
