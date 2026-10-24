@@ -6,8 +6,8 @@ const base = process.env.BASE_PATH ?? "";
 
 const config: NextConfig = {
   output: "export",
-  // El build va a su propia carpeta para no pisar la .next de `next dev` si ambos corren a la vez.
-  distDir: process.env.NODE_ENV === "production" ? ".next-build" : ".next",
+  // `next dev` usa su propia carpeta para que un build (que exporta a out/) no le pise la caché.
+  distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   basePath: base || undefined,
   images: { unoptimized: true },
   trailingSlash: true,

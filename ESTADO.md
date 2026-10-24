@@ -37,6 +37,13 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - 2026-10-23 · Factores ilustrativos: CO₂ 0,20 t/MWh calor (gas natural), 0,14 t/MWh eléctrico; 95 m³ de gas por MWh.
 
 ## Bitácora
+### 2026-10-24 — Datos alineados con el artefacto del proyecto (Mapa de Oportunidades GIMI, C3)
+- Fuente: artefacto consolidado del líder del proyecto (claude.ai/artifact/QAJzcX2i3R85x3CpzRGq8t, revisado el 2026-10-24).
+- Horas de operación 8.000 → 8.400 h/año (base del análisis del equipo); electricidad USD 0,224/kWh (antes ≈ 0,11 implícito).
+- Meta del reto Ecopetrol en el paso 1: 7 PJ en 4 años (≈ 1,75 PJ/año ≈ 55 MW promedio).
+- ESCO: 100 % del CAPEX del proveedor, ahorro verificado con IPMVP, 7–10 años. Incentivos Ley 1715/2099 en el paso 6.
+- Efecto: piloto USD 1,68 M/año (retorno 0,7 años); portafolio 15 MW y USD 7,9 M/año; el ORC (F3 → D6) sube a P2.
+
 ### 2026-10-24 — Rediseño visual (identidad propia frente a ConfluencIA)
 - Pedido de Voltac: las dos vitrinas van al mismo evento; Calor Rescatado debe verse distinta, con el mapa como protagonista,
   los puntos dentro de las secciones reales de la planta y la conexión como tubería recta por la planta (no arcos).
@@ -53,4 +60,4 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - 10 pasos en 5 etapas (problema → diagnóstico → estructuración → decisión → ejecución), indicadores progresivos,
   panel interactivo por paso (paleta térmica, celda del cruce, tecnología, modelo, supuestos, portafolio), presentación
   automática y vista móvil.
-- `next build` compila en `.next-build` (dev usa `.next`): ya se pueden correr a la vez. `vitrina-estatica` en launch.json sirve `out/` en el puerto 3201.
+- `next dev` usa `.next-dev` y `next build` usa `.next` y exporta a `out/`: se pueden correr a la vez. `vitrina-estatica` en launch.json sirve `out/` en el puerto 3201.

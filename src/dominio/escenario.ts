@@ -140,7 +140,7 @@ export interface ModeloNegocio {
 
 export const MODELOS: ModeloNegocio[] = [
   { id: "M1", nombre: "CAPEX directo", descripcion: "La refinería compra, instala y opera.", inversionCliente: 1, participacionCliente: 1, riesgoProveedor: "Bajo", pagoPorResultado: "No" },
-  { id: "M2", nombre: "ESCO", descripcion: "El proveedor invierte y cobra un porcentaje del ahorro verificado.", inversionCliente: 0, participacionCliente: 0.7, riesgoProveedor: "Alto", pagoPorResultado: "Sí" },
+  { id: "M2", nombre: "ESCO", descripcion: "El proveedor pone el 100 % del CAPEX y cobra un porcentaje del ahorro verificado con IPMVP durante 7–10 años.", inversionCliente: 0, participacionCliente: 0.7, riesgoProveedor: "Alto", pagoPorResultado: "Sí" },
   { id: "M3", nombre: "BOOT", descripcion: "Un tercero financia, construye, opera y transfiere al final.", inversionCliente: 0, participacionCliente: 0.45, riesgoProveedor: "Alto", pagoPorResultado: "Parcial" },
   { id: "M4", nombre: "EaaS", descripcion: "Energía como servicio: se paga por MWh útil entregado.", inversionCliente: 0, participacionCliente: 0.35, riesgoProveedor: "Alto", pagoPorResultado: "Parcial" },
   { id: "M5", nombre: "CaaS", descripcion: "Frío como servicio: se paga por tonelada de refrigeración.", inversionCliente: 0, participacionCliente: 0.4, riesgoProveedor: "Alto", pagoPorResultado: "Parcial", soloPara: "FRIO" },
@@ -159,7 +159,11 @@ export interface Supuestos {
   /** Multiplicador del CAPEX (0,5–2). */
   factorCapex: number;
 }
-export const SUPUESTOS_INICIALES: Supuestos = { eficiencia: 0.6, costoEnergia: 50, horas: 8000, factorCapex: 1 };
+// 8.400 h/año: base del análisis del equipo (artefacto del proyecto, insight 7). La guía v1 usaba 8.000 h.
+export const SUPUESTOS_INICIALES: Supuestos = { eficiencia: 0.6, costoEnergia: 50, horas: 8400, factorCapex: 1 };
+
+/** Meta del reto Ecopetrol (artefacto del proyecto): 7 PJ de ahorro térmico en 4 años. */
+export const META_RETO = { pj: 7, anios: 4, pjAnio: 1.75, mwPromedio: 55 } as const;
 
 /** Ponderación del puntaje (guía de uso §6). */
 export const PESOS = { potencial: 0.2, temperatura: 0.15, continuidad: 0.15, ahorro: 0.15, cercania: 0.1, facilidad: 0.1, capex: 0.1, co2: 0.05 } as const;
@@ -177,8 +181,12 @@ export const NOMBRE_CRITERIO8: Record<Criterio8, string> = {
 
 /** Factores de emisión ilustrativos (t CO₂ por MWh útil desplazado). */
 export const FACTOR_CO2: Record<TipoDemanda, number> = { CALOR: 0.2, FRIO: 0.035, ELECTRICIDAD: 0.14 };
-/** El MWh eléctrico vale más que el térmico. */
-export const PRECIO_RELATIVO: Record<TipoDemanda, number> = { CALOR: 1, FRIO: 1, ELECTRICIDAD: 2.2 };
+/**
+ * El MWh eléctrico vale más que el térmico: USD 0,224/kWh de electricidad (artefacto del proyecto) frente a
+ * USD 50/MWh de calor → 4,48 veces. El frío vale lo de la electricidad que evita (428 kW de frío ahorran
+ * 100,5 kW eléctricos ≈ USD 52,6/MWh de frío), así que USD 50/MWh es coherente.
+ */
+export const PRECIO_RELATIVO: Record<TipoDemanda, number> = { CALOR: 1, FRIO: 1, ELECTRICIDAD: 4.48 };
 /** m³ de gas natural por MWh térmico (≈ 10,5 kWh/m³, ilustrativo). */
 export const GAS_M3_POR_MWH = 95;
 
@@ -273,7 +281,7 @@ export const PASOS: Paso[] = [
   {
     id: "monitoreo", etapa: "Ejecución", titulo: "Piloto y monitoreo", bajada: "Medir para verificar",
     texto: "El piloto se instrumenta con sensórica clamp-on, sin parar el proceso: temperatura y caudal en la salida de la fuente y en la entrada de la demanda. El tablero compara en tiempo real el calor entregado contra el esperado.",
-    clave: "Lo que se mide se puede cobrar: el ahorro verificado es la base del pago en un modelo ESCO.",
+    clave: "Lo que se mide se puede cobrar: el ahorro verificado con el protocolo IPMVP es la base del pago en un modelo ESCO.",
     camara: { ...PLANTA, zoom: 18.1, pitch: 45, bearing: 20 }, enfocarOportunidad: true,
   },
   {

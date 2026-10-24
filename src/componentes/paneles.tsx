@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DEMANDAS, FUENTES, GAS_M3_POR_MWH, HABILITADORES, MODELOS, NOMBRE_CRITERIO8, PESOS, SUPUESTOS_INICIALES, TECNOLOGIAS, type Criterio8, type IdPaso, type Supuestos } from "@/dominio/escenario";
+import { DEMANDAS, FUENTES, GAS_M3_POR_MWH, HABILITADORES, META_RETO, MODELOS, NOMBRE_CRITERIO8, PESOS, SUPUESTOS_INICIALES, TECNOLOGIAS, type Criterio8, type IdPaso, type Supuestos } from "@/dominio/escenario";
 import { CALOR_RESIDUAL_MW, ajusteTecnologia, evaluar, type EstadoCriterio, type Oportunidad, type Par } from "@/dominio/motor";
 import { Barras, COLOR_PAR, FlujoCaja, COLOR_PRIORIDAD_CSS, MatrizCruce, MatrizPrioridad, Radar, SaltoTemperatura, Serie } from "@/componentes/graficos";
 import { PALETAS, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
@@ -82,10 +82,17 @@ function Deslizador({ etiqueta, valor, min, max, paso, formato, onCambio }: { et
 
 /** 1 · El problema: cuánto calor se pierde y dónde. */
 function PanelProblema() {
-  const energia = CALOR_RESIDUAL_MW * 8000;
+  const energia = CALOR_RESIDUAL_MW * SUPUESTOS_INICIALES.horas;
   return (
     <div className="flex flex-col gap-3">
-      <Titulo sub="8 fuentes de la refinería, 8.000 h de operación al año">Lo que hoy se pierde</Titulo>
+      <Titulo sub={`8 fuentes de la refinería, ${num(SUPUESTOS_INICIALES.horas)} h de operación al año`}>Lo que hoy se pierde</Titulo>
+      <div className="visor p-2 text-xs">
+        <p className="hud text-[9px] text-[#FFB000]">Meta del reto Ecopetrol</p>
+        <p className="cifra-tabular text-base font-semibold text-white">
+          {META_RETO.pj} PJ en {META_RETO.anios} años <span className="text-xs font-normal text-[#9B9BA1]">≈ {num(META_RETO.pjAnio, 2)} PJ/año ≈ {META_RETO.mwPromedio} MW promedio</span>
+        </p>
+        <ChipOrigen origen="DECLARADO" mini />
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <Cifra etiqueta="Calor residual" valor={`${CALOR_RESIDUAL_MW} MWt`} color={COLOR.naranja} origen="DECLARADO" />
         <Cifra etiqueta="Energía perdida al año" valor={`${num(energia / 1000)} GWh`} color={COLOR.naranja} />
@@ -345,6 +352,9 @@ function PanelModelo({ op, onModelo, supuestos }: Pick<ContextoPanel, "op" | "on
           </span>
         </div>
       </div>
+      <p className="border-l-2 border-[#3DDC84] pl-2 text-[11px] text-[#C8C8CC]">
+        Incentivos Ley 1715/2099 (con certificación UPME): exclusión del 50 % en renta, IVA 0 % y aranceles 0 % en equipos. El ahorro se verifica con el protocolo IPMVP.
+      </p>
       <p className="text-[11px] text-[#9B9BA1]">Toque una curva para elegir el modelo. Ahorro neto anual (ahorro − 4 % de OPEX) × participación de la refinería, menos su inversión. Cifras ilustrativas.</p>
     </div>
   );
@@ -496,7 +506,7 @@ function PanelMonitoreo({ op }: Pick<ContextoPanel, "op">) {
         <Serie valores={serie} color={COLOR.lima} referencia={esperado} />
       </div>
       <div className={`rounded-[2px] border p-2 text-xs ${dif <= 5 ? "border-[#3DDC84]/50 text-[#3DDC84]" : "border-[#FF3B30] text-[#FF3B30]"}`}>
-        Conciliación entregado–esperado: {num(dif, 1)} % (tolerancia 5 %) · {dif <= 5 ? "dentro de lo pactado" : "fuera de lo pactado: se avisa a las partes"}
+        Conciliación entregado–esperado (IPMVP): {num(dif, 1)} % (tolerancia 5 %) · {dif <= 5 ? "dentro de lo pactado" : "fuera de lo pactado: se avisa a las partes"}
       </div>
       <Cifra etiqueta="Calor rescatado en el mes" valor={`${num(mwh, 1)} MWh`} color={COLOR.lima} origen="MEDIDO" />
       <ul className="flex flex-col gap-1 text-[11px]">
