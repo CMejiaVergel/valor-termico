@@ -148,22 +148,66 @@ export const MODELOS: ModeloNegocio[] = [
   { id: "M7", nombre: "Pago por desempeño", descripcion: "Pago variable atado a KPIs de energía recuperada.", inversionCliente: 0.3, participacionCliente: 0.85, riesgoProveedor: "Alto", pagoPorResultado: "Sí" },
 ];
 
-/** Supuestos ajustables del paso de evaluación (valores iniciales de la guía). */
+/** Supuestos ajustables del paso de evaluación. Los valores base y su origen están en FUENTES_DATOS. */
 export interface Supuestos {
   /** Eficiencia de aprovechamiento de la fuente (0,3–0,9). */
   eficiencia: number;
-  /** USD por MWh útil de energía evitada (20–120). */
+  /** USD por MWh térmico útil evitado: calor de caldera a gas (20–150). */
   costoEnergia: number;
+  /** USD por MWh eléctrico evitado (100–300). */
+  precioElectricidad: number;
   /** Horas de operación al año (4.000–8.760). */
   horas: number;
   /** Multiplicador del CAPEX (0,5–2). */
   factorCapex: number;
 }
-// 8.400 h/año: base del análisis del equipo (artefacto del proyecto, insight 7). La guía v1 usaba 8.000 h.
-export const SUPUESTOS_INICIALES: Supuestos = { eficiencia: 0.6, costoEnergia: 50, horas: 8400, factorCapex: 1 };
 
-/** Meta del reto Ecopetrol (artefacto del proyecto): 7 PJ de ahorro térmico en 4 años. */
-export const META_RETO = { pj: 7, anios: 4, pjAnio: 1.75, mwPromedio: 55 } as const;
+/** Tasa de cambio de referencia (COP por USD): promedio aproximado de octubre de 2026. */
+export const TRM_REFERENCIA = 3200;
+/** Gas importado (GNL), contratos sep.–nov. 2026, en USD/MBTU. */
+export const PRECIO_GAS_USD_MBTU = 24.97;
+/** Eficiencia de la caldera a gas de referencia (supuesto técnico). */
+export const EFICIENCIA_CALDERA = 0.85;
+const MWH_POR_MBTU = 0.29307;
+/** Calor útil de caldera: 24,97 ÷ (0,85 × 0,293) ≈ USD 100/MWh térmico. */
+export const COSTO_CALOR_USD_MWH = Math.round(PRECIO_GAS_USD_MBTU / (EFICIENCIA_CALDERA * MWH_POR_MBTU));
+/** Escenario conservador del calor: equivale a gas a ≈ USD 12,5/MBTU. */
+export const COSTO_CALOR_CONSERVADOR = 50;
+/** Afinia, costo unitario Nivel 4, octubre de 2026 (COP/kWh). */
+export const TARIFA_AFINIA_N4_COP_KWH = 728.67;
+/** 728,67 COP/kWh ÷ TRM ≈ USD 228/MWh. */
+export const PRECIO_ELECTRICIDAD_USD_MWH = Math.round((TARIFA_AFINIA_N4_COP_KWH * 1000) / TRM_REFERENCIA);
+/** COP de un chiller eléctrico de referencia: el frío vale la electricidad que evita (supuesto técnico). */
+export const COP_CHILLER_ELECTRICO = 5;
+
+// 8.400 h/año: base del análisis del equipo (artefacto del proyecto). La guía v1 usaba 8.000 h.
+export const SUPUESTOS_INICIALES: Supuestos = { eficiencia: 0.6, costoEnergia: COSTO_CALOR_USD_MWH, precioElectricidad: PRECIO_ELECTRICIDAD_USD_MWH, horas: 8400, factorCapex: 1 };
+
+/** USD por MWh útil entregado según la forma de la demanda. */
+export function precioMWh(tipo: TipoDemanda, s: Supuestos): number {
+  return tipo === "CALOR" ? s.costoEnergia : tipo === "ELECTRICIDAD" ? s.precioElectricidad : s.precioElectricidad / COP_CHILLER_ELECTRICO;
+}
+
+/** Meta que fijó la refinería en el reto: 7 PJ de ahorro térmico en 4 años. Es su meta, no un compromiso del servicio. */
+export const META_RETO = {
+  pj: 7,
+  anios: 4,
+  pjAnio: 1.75,
+  /** MW térmicos sostenidos que exige: 1,75 PJ = 486.111 MWh ÷ 8.400 h ≈ 58 MW. */
+  mwPromedio: Math.round(1.75e9 / 3600 / 8400),
+} as const;
+/** PJ al año que aporta 1 MW térmico sostenido durante esas horas. */
+export const pjAnioPorMW = (horas: number) => (horas * 3600) / 1e9;
+/** Fracción de la meta anual que representan unos MW recuperados. */
+export const fraccionMeta = (mw: number, horas: number) => (mw * pjAnioPorMW(horas)) / META_RETO.pjAnio;
+
+/**
+ * Escenarios de alcance. Piloto: una sección que elige la refinería, con una meta medible
+ * (1 MW recuperado ≈ 1,7 % de la meta anual). Intermedio: supuesto declarado de cinco secciones
+ * similares. Refinería completa: proporcional a la meta del reto, sin compromiso.
+ */
+export const META_PILOTO_INICIAL = 1;
+export const SECCIONES_INTERMEDIO = 5;
 
 /** Ponderación del puntaje (guía de uso §6). */
 export const PESOS = { potencial: 0.2, temperatura: 0.15, continuidad: 0.15, ahorro: 0.15, cercania: 0.1, facilidad: 0.1, capex: 0.1, co2: 0.05 } as const;
@@ -181,14 +225,36 @@ export const NOMBRE_CRITERIO8: Record<Criterio8, string> = {
 
 /** Factores de emisión ilustrativos (t CO₂ por MWh útil desplazado). */
 export const FACTOR_CO2: Record<TipoDemanda, number> = { CALOR: 0.2, FRIO: 0.035, ELECTRICIDAD: 0.14 };
-/**
- * El MWh eléctrico vale más que el térmico: USD 0,224/kWh de electricidad (artefacto del proyecto) frente a
- * USD 50/MWh de calor → 4,48 veces. El frío vale lo de la electricidad que evita (428 kW de frío ahorran
- * 100,5 kW eléctricos ≈ USD 52,6/MWh de frío), así que USD 50/MWh es coherente.
- */
-export const PRECIO_RELATIVO: Record<TipoDemanda, number> = { CALOR: 1, FRIO: 1, ELECTRICIDAD: 4.48 };
 /** m³ de gas natural por MWh térmico (≈ 10,5 kWh/m³, ilustrativo). */
 export const GAS_M3_POR_MWH = 95;
+
+/** Origen de cada valor de referencia que usa el prototipo (sección «Supuestos y fuentes»). */
+export interface FuenteDato {
+  dato: string;
+  valor: string;
+  tipo: "PUBLICADO" | "ESTIMACIÓN" | "SUPUESTO" | "META DE LA REFINERÍA";
+  explicacion: string;
+  fuente?: { nombre: string; url: string };
+}
+const cop = (n: number) => n.toLocaleString("es-CO");
+export const FUENTES_DATOS: FuenteDato[] = [
+  { dato: "Meta del reto", valor: "7 PJ en 4 años (1,75 PJ/año)", tipo: "META DE LA REFINERÍA", explicacion: "La fija la refinería en el reto. El prototipo la usa como referencia de escala, no como compromiso." },
+  { dato: "MW sostenidos que exige la meta", valor: `≈ ${META_RETO.mwPromedio} MW térmicos`, tipo: "ESTIMACIÓN", explicacion: "1,75 PJ/año = 486.111 MWh ÷ 8.400 h de operación." },
+  { dato: "Qué representa 1 MW recuperado", valor: "8.400 MWh/año ≈ 0,030 PJ ≈ 1,7 % de la meta anual", tipo: "ESTIMACIÓN", explicacion: "1 MW × 8.400 h. Es la unidad de escala del piloto: una meta del 1 % al 2 % equivale a 0,6–1,2 MW." },
+  { dato: "Horas de operación", valor: "8.400 h/año", tipo: "SUPUESTO", explicacion: "Base del análisis del equipo: operación continua con paradas programadas." },
+  { dato: "Tarifa eléctrica Afinia, Nivel 4", valor: `${cop(TARIFA_AFINIA_N4_COP_KWH)} COP/kWh`, tipo: "PUBLICADO", explicacion: "Costo unitario regulado de octubre de 2026 (Nivel 2: 846,86; Nivel 3: 797,24). Los usuarios industriales están exentos de la contribución (Ley 1430 de 2010).", fuente: { nombre: "Afinia · tarifas y subsidios", url: "https://afinia.com.co/inicio/tarifas-y-subsidios" } },
+  { dato: "Energía en el mercado no regulado", valor: "311,8 COP/kWh (junio de 2026)", tipo: "PUBLICADO", explicacion: "Precio de la energía según XM, sin cargos de red. Con los cargos de red del pliego de Afinia Nivel 4 (≈ 316 COP/kWh), un kWh entregado en Mamonal costaría ≈ 630 COP/kWh ≈ USD 0,20 (estimación).", fuente: { nombre: "El Colombiano · precios de XM, junio de 2026", url: "https://www.elcolombiano.com/negocios/precio-energia-bolsa-colombia-junio-2026-xm-BJ39303367" } },
+  { dato: "Tasa de cambio de referencia", valor: `${cop(TRM_REFERENCIA)} COP/USD`, tipo: "SUPUESTO", explicacion: "Promedio aproximado de octubre de 2026. El informe final usa la TRM oficial de su fecha." },
+  { dato: "Precio de la electricidad", valor: `≈ USD ${PRECIO_ELECTRICIDAD_USD_MWH}/MWh`, tipo: "ESTIMACIÓN", explicacion: "Tarifa Afinia Nivel 4 ÷ TRM de referencia. Reemplaza los USD 0,224/kWh del artefacto, que no tenían fuente." },
+  { dato: "Gas natural importado (GNL)", valor: `USD ${cop(PRECIO_GAS_USD_MBTU)}/MBTU`, tipo: "PUBLICADO", explicacion: "Contratos de septiembre a noviembre de 2026.", fuente: { nombre: "El Colombiano · precio del gas importado", url: "https://www.elcolombiano.com/negocios/precio-del-gas-importado-crece-en-colombia-FB40278940" } },
+  { dato: "Valor del calor útil", valor: `≈ USD ${COSTO_CALOR_USD_MWH}/MWh térmico`, tipo: "ESTIMACIÓN", explicacion: `Gas importado quemado en una caldera de ${Math.round(EFICIENCIA_CALDERA * 100)} % (supuesto). Escenario conservador: USD ${COSTO_CALOR_CONSERVADOR}/MWh, que equivale a gas a ≈ USD 12,5/MBTU.` },
+  { dato: "kWh autogenerado en la refinería", valor: "≈ USD 0,17–0,24/kWh", tipo: "ESTIMACIÓN", explicacion: "Solo combustible: gas importado × 7 MBTU/MWh (ciclo combinado) a 9,5 MBTU/MWh (turbina simple). Sin operación ni mantenimiento." },
+  { dato: "Valor del frío", valor: `≈ USD ${Math.round(PRECIO_ELECTRICIDAD_USD_MWH / COP_CHILLER_ELECTRICO)}/MWh de frío`, tipo: "ESTIMACIÓN", explicacion: `La electricidad que deja de consumir un chiller eléctrico de COP ${COP_CHILLER_ELECTRICO} (supuesto técnico).` },
+  { dato: "Rendimiento de las tecnologías", valor: "Intercambiador 0,9 · absorción COP 0,7 · ORC 12 %", tipo: "SUPUESTO", explicacion: "Valores típicos de catálogo. El portafolio real usa la ficha de cada proveedor." },
+  { dato: "CAPEX por MW útil", valor: "USD 0,2–3,5 M según tecnología", tipo: "SUPUESTO", explicacion: "Órdenes de magnitud para el ejemplo. En el portafolio real se cotizan." },
+  { dato: "Factores de CO₂", valor: "Calor 0,20 · electricidad 0,14 t/MWh", tipo: "SUPUESTO", explicacion: "Ilustrativos: combustión de gas en caldera y red eléctrica. El informe usa los factores oficiales vigentes." },
+  { dato: "Inventario de fuentes y demandas", valor: "8 fuentes · 7 demandas", tipo: "SUPUESTO", explicacion: "Ejemplo ilustrativo sobre la imagen satelital. En el servicio, la refinería entrega los datos y se tratan como confidenciales." },
+];
 
 /** Oportunidad protagonista del recorrido. */
 export const OPORTUNIDAD_INICIAL = { fuente: "F1", demanda: "D4", tecnologia: "T1", modelo: "M2" } as const;
@@ -215,7 +281,7 @@ export interface Camara {
 
 export interface Paso {
   id: IdPaso;
-  etapa: "El problema" | "Diagnóstico" | "Estructuración" | "Decisión" | "Ejecución";
+  etapa: "El reto" | "Diagnóstico" | "Estructuración" | "Decisión" | "Ejecución";
   titulo: string;
   bajada: string;
   texto: string;
@@ -231,65 +297,65 @@ const PLANTA = { ...PX(800, 478) };
 
 export const PASOS: Paso[] = [
   {
-    id: "problema", etapa: "El problema", titulo: "Calor que se pierde", bajada: "Energía pagada que se va al aire",
-    texto: "La refinería quema combustible para producir calor y luego disipa una parte a la atmósfera y al agua de enfriamiento. Ese calor residual ya está pagado, pero hoy nadie lo mide ni lo aprovecha.",
-    clave: "Cada megavatio que se pierde es combustible comprado dos veces: una para producirlo y otra para reemplazarlo donde sí se necesita.",
+    id: "problema", etapa: "El reto", titulo: "El reto", bajada: "7 PJ de ahorro térmico en 4 años",
+    texto: "La refinería se propuso ahorrar 7 PJ de energía térmica en cuatro años, unos 58 MW sostenidos. Parte de ese ahorro puede salir del calor que hoy se disipa al aire y al agua de enfriamiento. El primer paso es saber dónde está, cuánto hay y en qué se puede usar.",
+    clave: "Cada megavatio térmico recuperado durante 8.400 h equivale a cerca del 1,7 % de la meta anual. Esa es la unidad con la que se dimensiona el piloto.",
     camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
   {
-    id: "inventario", etapa: "Diagnóstico", titulo: "Inventario térmico", bajada: "Fuentes y demandas, sección por sección",
-    texto: "Cada fuente se ubica en la sección de la planta que la genera y se caracteriza por temperatura, potencia, continuidad y origen del dato. Cada demanda, por la temperatura y la energía que necesita. Retícula caliente: ofrece calor. Retícula fría: lo necesita.",
-    clave: "Sin inventario no hay negocio. Cada dato declara su origen: medido, declarado o estimado.",
+    id: "inventario", etapa: "Diagnóstico", titulo: "Datos de la planta", bajada: "La refinería entrega, nosotros consolidamos",
+    texto: "Los ingenieros de la refinería entregan los datos de sus fuentes de calor sobrante y de sus consumidores: temperatura, potencia, continuidad y ubicación. La plataforma los consolida de forma segura, punto por punto, y marca el origen de cada dato: medido, declarado o estimado.",
+    clave: "Los datos de la planta son confidenciales: se guardan con acceso restringido y solo se usan para el portafolio. Este ejemplo es ilustrativo.",
     camara: { ...PLANTA, zoom: 16.25, pitch: 20, bearing: 0 },
   },
   {
     id: "termico", etapa: "Diagnóstico", titulo: "Mapa térmico", bajada: "Dónde se concentra el calor",
     texto: "La plataforma convierte el inventario en una termografía de la planta: los tonos más calientes muestran dónde se concentra la energía disponible. Ajuste la paleta y la intensidad en la ficha.",
-    clave: "Ver el calor sobre el plano de la planta convierte un listado técnico en una conversación de negocio.",
+    clave: "Ver el calor sobre el plano de la planta ayuda a elegir con los ingenieros la sección del piloto.",
     camara: { ...PLANTA, zoom: 16.15, pitch: 0, bearing: 0 },
   },
   {
-    id: "cruce", etapa: "Diagnóstico", titulo: "Cruce fuente–demanda", bajada: "El motor compara todo con todo",
+    id: "cruce", etapa: "Diagnóstico", titulo: "Compatibilidad", bajada: "El motor compara todo con todo",
     texto: "El motor cruza las 8 fuentes con las 7 demandas (56 pares) por los racks de tubería de la planta y verifica cinco criterios: temperatura, potencia, continuidad, longitud de tubería y calidad del dato. Verde: compatible. Ámbar: condicionado. Los descartados no se trazan.",
     clave: "Las reglas son físicas: el calor solo pasa de mayor a menor temperatura, salvo que una bomba de calor lo eleve.",
     camara: { ...PLANTA, zoom: 16.25, pitch: 25, bearing: 0 },
   },
   {
-    id: "tecnologia", etapa: "Estructuración", titulo: "Tecnología", bajada: "Cómo se aprovecha cada par",
-    texto: "Para el par elegido, la plataforma traza la tubería por el rack y propone la tecnología que encaja con el salto de temperatura: intercambiador, bomba de calor, recuperación de condensado, chiller de absorción u ORC.",
-    clave: "La misma fuente puede producir calor, frío o electricidad: la tecnología define cuánto vale cada megavatio.",
+    id: "tecnologia", etapa: "Estructuración", titulo: "Propuestas de la IA", bajada: "Proyectos de uso para cada par",
+    texto: "Para el par elegido, un agente de IA propone proyectos de uso: reusar el calor en el proceso o convertirlo, por ejemplo en frío para climatizar oficinas o en electricidad. Cada propuesta trae la tecnología, la tubería por el rack y sus indicadores estimados.",
+    clave: "En este prototipo el agente es simulado: las propuestas salen de reglas y supuestos declarados, y así se rotulan. Los ingenieros de la refinería revisan y aprueban.",
     camara: { ...PLANTA, zoom: 17.7, pitch: 35, bearing: -15 }, enfocarOportunidad: true,
   },
   {
-    id: "modelo", etapa: "Estructuración", titulo: "Modelo de negocio", bajada: "Cómo paga la refinería",
-    texto: "La misma oportunidad se puede pagar de siete formas. La plataforma compara, año a año, el flujo de caja de la refinería: cuánto invierte, qué parte del ahorro conserva y qué riesgo asume quien ejecuta.",
-    clave: "Con un modelo ESCO la refinería no invierte: paga con una parte del ahorro verificado.",
+    id: "modelo", etapa: "Estructuración", titulo: "Financiamiento del proyecto", bajada: "Cómo podría financiarlo la refinería",
+    texto: "Cada proyecto se puede financiar de varias formas: con CAPEX propio, con una ESCO, con un esquema BOOT, como servicio… La plataforma compara, año a año, el flujo de caja de la refinería en cada esquema. La inversión inicial y el retorno dependen de esa elección.",
+    clave: "Estos son esquemas de financiamiento del proyecto para la refinería. No son el modelo de negocio de Calor Rescatado.",
     camara: { ...PLANTA, zoom: 17.5, pitch: 30, bearing: 10 }, enfocarOportunidad: true,
   },
   {
-    id: "evaluacion", etapa: "Decisión", titulo: "Evaluación", bajada: "Cifras para decidir",
-    texto: "Con la tecnología y el modelo elegidos, la plataforma calcula potencia útil, energía anual, ahorro, CAPEX, retorno y CO₂ evitado, y los resume en un puntaje de 8 criterios. Mueva los supuestos y vea el resultado al instante.",
-    clave: "El puntaje convierte criterios técnicos y económicos en una sola prioridad comparable entre oportunidades.",
+    id: "evaluacion", etapa: "Decisión", titulo: "Evaluación", bajada: "Indicadores estimados",
+    texto: "Con la tecnología y el financiamiento elegidos, la plataforma estima inversión inicial, ahorro energético, retorno e impacto ambiental y operativo, y los resume en un puntaje de 8 criterios. Mueva los supuestos y vea el resultado al instante.",
+    clave: "Todas las cifras son estimaciones con supuestos declarados y fuentes citadas. Se precisan con los datos reales de la planta.",
     camara: { ...PLANTA, zoom: 17.4, pitch: 25, bearing: 0 }, enfocarOportunidad: true,
   },
   {
-    id: "portafolio", etapa: "Decisión", titulo: "Portafolio priorizado", bajada: "Qué hacer primero",
-    texto: "Todas las oportunidades se ubican en una matriz de prioridad: viabilidad técnica contra valor económico. Sus tuberías se trazan por los racks con el color de su prioridad: P1 piloto, P2 prefactibilidad, P3 y P4 en espera.",
-    clave: "Un portafolio ordenado le dice a la refinería dónde poner el primer dólar y qué sigue después.",
+    id: "portafolio", etapa: "Decisión", titulo: "Portafolio del piloto", bajada: "Proyectos que suman la meta",
+    texto: "La refinería elige una sección para el piloto y una meta medible, por ejemplo 1 MW térmico recuperado. La plataforma toma los mejores proyectos de esa sección y los suma hasta cumplir la meta. Ese portafolio documentado, con respaldo técnico y bibliográfico, es el entregable.",
+    clave: "El portafolio es el producto del servicio: los ingenieros de la refinería lo revisan y deciden qué proyectos aprobar.",
     camara: { ...PLANTA, zoom: 16.2, pitch: 15, bearing: 0 },
   },
   {
     id: "monitoreo", etapa: "Ejecución", titulo: "Piloto y monitoreo", bajada: "Medir para verificar",
-    texto: "El piloto se instrumenta con sensórica clamp-on, sin parar el proceso: temperatura y caudal en la salida de la fuente y en la entrada de la demanda. El tablero compara en tiempo real el calor entregado contra el esperado.",
-    clave: "Lo que se mide se puede cobrar: el ahorro verificado con el protocolo IPMVP es la base del pago en un modelo ESCO.",
+    texto: "Si la refinería aprueba un proyecto, se instrumenta con sensórica clamp-on, sin parar el proceso: temperatura y caudal en la salida de la fuente y en la entrada de la demanda. El tablero compara el calor entregado contra el estimado.",
+    clave: "El ahorro verificado con el protocolo IPMVP confirma el resultado del piloto antes de escalar.",
     camara: { ...PLANTA, zoom: 18.1, pitch: 45, bearing: 20 }, enfocarOportunidad: true,
   },
   {
-    id: "impacto", etapa: "Ejecución", titulo: "Impacto", bajada: "Calor rescatado, verificado",
-    texto: "Cada mes se emite un reporte de calor rescatado: MWh recuperados, gas natural evitado, ahorro y CO₂, trazable a las mediciones. El portafolio completo multiplica ese impacto en toda la refinería.",
-    clave: "Del calor invisible a un activo medible, priorizado y financiable.",
+    id: "impacto", etapa: "Ejecución", titulo: "Escenarios de escala", bajada: "Del piloto a la refinería",
+    texto: "El resultado del piloto se proyecta en tres escenarios: el piloto en una sección, un escenario intermedio con cinco secciones similares (supuesto declarado) y la refinería completa, proporcional a la meta de 7 PJ. Son referencias de escala, no compromisos.",
+    clave: "Cobro por portafolio: un porcentaje del ahorro energético anual estimado de los proyectos que la refinería aprueba.",
     camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
 ];
 
-export const ETAPAS = ["El problema", "Diagnóstico", "Estructuración", "Decisión", "Ejecución"] as const;
+export const ETAPAS = ["El reto", "Diagnóstico", "Estructuración", "Decisión", "Ejecución"] as const;

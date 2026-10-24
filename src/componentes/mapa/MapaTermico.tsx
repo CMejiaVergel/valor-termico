@@ -168,6 +168,9 @@ function aplicarCapasNativas(m: MapaMapbox, termografia: boolean, paleta: Paleta
     }
     if (!m.getSource("zonas")) m.addSource("zonas", { type: "geojson", data: GEOJSON_ZONAS });
     if (!m.getLayer("zonas-borde")) m.addLayer({ id: "zonas-borde", type: "line", source: "zonas", paint: { "line-color": "rgba(255,255,255,0.32)", "line-width": 1, "line-dasharray": [3, 3] } });
+    // Sección del piloto: contorno ámbar, visible solo en los pasos del portafolio y la escala.
+    if (!m.getLayer("zona-piloto")) m.addLayer({ id: "zona-piloto", type: "line", source: "zonas", filter: ["==", ["get", "nombre"], ""], paint: { "line-color": "#FFB000", "line-width": 2.5 } });
+    if (!m.getLayer("zona-piloto-fondo")) m.addLayer({ id: "zona-piloto-fondo", type: "fill", source: "zonas", filter: ["==", ["get", "nombre"], ""], paint: { "fill-color": "#FFB000", "fill-opacity": 0.07 } });
     if (!m.getSource("racks")) m.addSource("racks", { type: "geojson", data: GEOJSON_RACKS });
     if (!m.getLayer("racks")) m.addLayer({ id: "racks", type: "line", source: "racks", paint: { "line-color": "rgba(255,255,255,0.16)", "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 18, 7] } });
     if (!m.getSource("calor")) m.addSource("calor", { type: "geojson", data: GEOJSON_CALOR });
@@ -256,6 +259,8 @@ interface Props {
   onPrecargado: () => void;
   onSeleccionarPar: (id: string) => void;
   onSeleccionarPunto: (id: string) => void;
+  /** Sección del piloto a resaltar (null: ninguna). */
+  seccionPiloto: string | null;
 }
 
 function MapaTermicoBase(props: Props) {
@@ -275,6 +280,18 @@ function MapaTermicoBase(props: Props) {
   const pantalla = useRef({ margen, ajusteZoom, oportunidad });
   pantalla.current = { margen, ajusteZoom, oportunidad };
   const marcadores = useRef<Map<string, Marker>>(new Map());
+
+  // Contorno de la sección del piloto.
+  useEffect(() => {
+    const m = mapa.current;
+    if (!m || !listo) return;
+    const filtro = ["==", ["get", "nombre"], props.seccionPiloto ?? ""] as never;
+    try {
+      for (const id of ["zona-piloto", "zona-piloto-fondo"]) if (m.getLayer(id)) m.setFilter(id, filtro);
+    } catch {
+      // El estilo se está recargando: el siguiente cambio lo aplica.
+    }
+  }, [listo, props.seccionPiloto]);
 
   // Mapa + overlay, una vez.
   useEffect(() => {

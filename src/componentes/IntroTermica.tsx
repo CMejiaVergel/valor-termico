@@ -33,7 +33,8 @@ export function IntroTermica({ mapaListo, onTerminar }: { mapaListo: boolean; on
     let cuadro = 0;
     let ultimo = "";
     const paso = (ahora: number) => {
-      const t = ahora - inicio;
+      // El primer cuadro puede traer una marca anterior a «inicio»: sin el tope, el avance sería negativo.
+      const t = Math.max(0, ahora - inicio);
       const base = Math.min(0.9, t / MIN_MS * 0.9);
       const p = listo.current && t >= MIN_MS ? 1 : t >= MAX_MS ? 1 : base;
       if (barra.current) barra.current.style.transform = `scaleX(${p})`;

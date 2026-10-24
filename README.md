@@ -1,8 +1,13 @@
 # Calor Rescatado · Mapa de Oportunidades Térmicas (vitrina guiada)
 
-Prototipo interactivo que explica, en 10 pasos guiados, cómo el software convierte el calor residual de la
-Refinería de Cartagena en un portafolio de proyectos medibles, priorizados y financiables.
-Las cifras son **ilustrativas** (salen del prototipo v1 y su guía de uso) y cada una declara su origen.
+Prototipo interactivo que explica, en 10 pasos guiados, el servicio de Calor Rescatado: consultoría especializada
+apoyada en software. La refinería entrega sus datos térmicos (fuentes con calor sobrante y consumidores potenciales),
+la plataforma los consolida en el mapa, un motor evalúa la compatibilidad y un agente de IA (simulado) propone
+proyectos de uso con indicadores estimados. El entregable es un portafolio documentado que los ingenieros de la
+refinería aprueban. Modelo de negocio: **cobro por portafolio**, un porcentaje del ahorro energético anual estimado.
+
+Las fuentes, demandas y tecnologías son **ilustrativas**. Los precios de energía salen de fuentes publicadas
+(Afinia, XM, gas importado) y cada supuesto se declara en la sección «Supuestos y fuentes» (`FUENTES_DATOS`).
 
 La mecánica (recorrido guiado, motor, presentación automática, celular) viene de la Vitrina de ConfluencIA Hídrica,
 pero la identidad visual es **propia y distinta** porque ambas se presentan en el mismo evento: cámara termográfica
@@ -14,16 +19,16 @@ Fuentes, demandas y secciones se ubican sobre la imagen satelital real de la ref
 
 | Etapa | Paso | Qué muestra |
 |---|---|---|
-| El problema | 1 · Calor que se pierde | Termografía de la planta con emisión de cada fuente, 78 MWt ≈ 624 GWh/año |
-| Diagnóstico | 2 · Inventario térmico | 8 fuentes y 7 demandas con temperatura, potencia, continuidad y origen del dato |
+| El reto | 1 · El reto | Meta de la refinería (7 PJ en 4 años ≈ 58 MW) y la unidad del piloto: 1 MW recuperado ≈ 1,7 % de la meta anual |
+| Diagnóstico | 2 · Datos de la planta | Datos que entrega la refinería (confidenciales); inventario ilustrativo de 8 fuentes y 7 demandas |
 | | 3 · Mapa térmico | Termografía de la planta (paleta e intensidad ajustables) |
-| | 4 · Cruce fuente–demanda | 56 pares × 5 criterios (C1–C5), matriz 8×7, haz de tuberías por los racks |
-| Estructuración | 5 · Tecnología | Ajuste de cada tecnología al salto de temperatura del par |
-| | 6 · Modelo de negocio | Cómo paga la refinería: flujo de caja acumulado año a año en 7 modelos, quién invierte y qué parte del ahorro conserva |
-| Decisión | 7 · Evaluación | 8 indicadores, radar de 8 criterios, riesgo, prioridad y supuestos ajustables |
-| | 8 · Portafolio priorizado | Matriz técnica × económica con franjas de prioridad y ranking |
-| Ejecución | 9 · Piloto y monitoreo | Sensórica clamp-on en vivo (simulada) y conciliación |
-| | 10 · Impacto | Reporte mensual con huella SHA-256, totales del portafolio y hoja de ruta |
+| | 4 · Compatibilidad | 56 pares × 5 criterios (C1–C5), matriz 8×7, haz de tuberías por los racks |
+| Estructuración | 5 · Propuestas de la IA | Agente simulado que propone proyectos de uso (reúso, frío, electricidad) con indicadores estimados |
+| | 6 · Financiamiento del proyecto | Esquemas con que la refinería podría financiar el proyecto (CAPEX, ESCO, BOOT…); no es nuestro modelo de negocio |
+| Decisión | 7 · Evaluación | Indicadores estimados, radar de 8 criterios, riesgo, prioridad y supuestos con valores citados |
+| | 8 · Portafolio del piloto | Sección elegida por la refinería y meta (1 MW por defecto); los proyectos suman la meta |
+| Ejecución | 9 · Piloto y monitoreo | Sensórica clamp-on en vivo (simulada) y conciliación IPMVP |
+| | 10 · Escenarios de escala | Piloto, intermedio (5 secciones, supuesto) y refinería completa (proporcional a 7 PJ); cobro por portafolio |
 
 ## Cómo correrlo
 
@@ -39,7 +44,7 @@ En producción el token de Mapbox debe estar **restringido por URL** al dominio 
 
 ## Estructura
 
-- `src/dominio/escenario.ts` — fuentes, demandas, tecnologías, modelos de negocio, supuestos y los 10 pasos.
+- `src/dominio/escenario.ts` — fuentes, demandas, tecnologías, esquemas de financiamiento, supuestos con sus fuentes y los 10 pasos.
 - `src/dominio/motor.ts` — cruce (C1–C5), ajuste de tecnología, evaluación (8 criterios ponderados) y portafolio.
 - `src/componentes/mapa/MapaTermico.tsx` — Mapbox `satellite-v9` en gris + mapa térmico nativo + deck.gl intercalado (tuberías, flujo, emisión, sensores).
 - `src/componentes/IntroTermica.tsx` — entrada de calibración con barrido de escaneo.

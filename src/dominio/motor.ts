@@ -13,9 +13,10 @@ import {
   GAS_M3_POR_MWH,
   MODELOS,
   PESOS,
-  PRECIO_RELATIVO,
   RACKS,
   TECNOLOGIAS,
+  precioMWh,
+  type Zona,
   type Ajuste,
   type Criterio8,
   type Demanda,
@@ -221,13 +222,14 @@ const escala = (v: number, cortes: number[]) => {
   return 5 - cortes.length;
 };
 
-export function evaluar(f: Fuente, d: Demanda, t: Tecnologia, m: ModeloNegocio, s: Supuestos): Evaluacion {
+/** limiteMW: tope de calor que se toma de la fuente (para dimensionar un proyecto a la meta del piloto). */
+export function evaluar(f: Fuente, d: Demanda, t: Tecnologia, m: ModeloNegocio, s: Supuestos, limiteMW = Infinity): Evaluacion {
   const ajuste = ajusteTecnologia(t, f, d);
   const distancia = rutaTuberia(f, d).metros;
-  const qUtil = ajuste ? Math.min(f.potencia * s.eficiencia * t.factor, d.potencia) : 0;
+  const qUtil = ajuste ? Math.min(Math.min(f.potencia * s.eficiencia, limiteMW) * t.factor, d.potencia) : 0;
   const qAprovechado = qUtil / t.factor;
   const energiaMWh = qUtil * s.horas;
-  const ahorroUSD = energiaMWh * s.costoEnergia * PRECIO_RELATIVO[d.tipo];
+  const ahorroUSD = energiaMWh * precioMWh(d.tipo, s);
   const capexUSD = qUtil * t.capexPorMW * s.factorCapex;
   const opexUSD = capexUSD * 0.04;
   const neto = ahorroUSD - opexUSD;
@@ -305,6 +307,53 @@ export function portafolio(s: Supuestos, maximo = 8): Oportunidad[] {
     elegidas.push({ ...eReal, codigo: "", par: p, ...ejesMatriz(eReal) });
   }
   return elegidas.map((o, i) => ({ ...o, codigo: `OT-${String(i + 1).padStart(3, "0")}` }));
+}
+
+/** Secciones que tienen fuentes de calor: candidatas para el piloto. */
+export const SECCIONES_PILOTO: Zona[] = [...new Set(FUENTES.map((f) => f.zona))];
+
+export interface ProyectoPiloto extends Oportunidad {
+  /** MW de calor que el proyecto toma de la fuente dentro del piloto. */
+  recuperadoMW: number;
+  /** MW que podría tomar sin el tope de la meta (potencial completo del par). */
+  potencialMW: number;
+}
+
+/**
+ * Portafolio del piloto: los mejores proyectos cuya fuente está en la sección elegida, sumados
+ * hasta cumplir la meta de calor recuperado (MW tomados de las fuentes). El último proyecto se
+ * dimensiona a lo que falta; cada fuente y cada demanda se usan una sola vez.
+ */
+export function portafolioPiloto(s: Supuestos, seccion: Zona, metaMW: number, maximo = 6): ProyectoPiloto[] {
+  const esco = modelo("M2");
+  const candidatos = cruzarTodo(s.eficiencia)
+    .filter((p) => p.fuente.zona === seccion && p.estado !== "DESCARTADO" && p.tecnologia)
+    .map((p) => ({ p, e: evaluar(p.fuente, p.demanda, p.tecnologia!, esco, s) }))
+    .filter(({ e }) => e.qAprovechado > 0)
+    .sort((a, b) => b.e.puntaje - a.e.puntaje);
+  const capacidad = new Map(FUENTES.map((f) => [f.id, f.potencia * s.eficiencia]));
+  const atendidas = new Set<string>();
+  const elegidos: ProyectoPiloto[] = [];
+  let falta = metaMW;
+  for (const { p, e } of candidatos) {
+    if (falta <= 1e-6 || elegidos.length >= maximo || atendidas.has(p.demanda.id)) continue;
+    const libre = capacidad.get(p.fuente.id)!;
+    if (libre <= 1e-6) continue;
+    const tope = Math.min(libre, falta, e.qAprovechado);
+    const eReal = evaluar(p.fuente, p.demanda, p.tecnologia!, esco, s, tope);
+    capacidad.set(p.fuente.id, libre - eReal.qAprovechado);
+    atendidas.add(p.demanda.id);
+    falta -= eReal.qAprovechado;
+    // La prioridad se conserva del par completo: dimensionar al piloto no cambia el ranking.
+    const { puntajes, puntaje, prioridad, nivelPrioridad, accion } = e;
+    elegidos.push({ ...eReal, puntajes, puntaje, prioridad, nivelPrioridad, accion, codigo: "", par: p, ...ejesMatriz(e), recuperadoMW: eReal.qAprovechado, potencialMW: e.qAprovechado });
+  }
+  return elegidos.map((o, i) => ({ ...o, codigo: `PP-${String(i + 1).padStart(2, "0")}` }));
+}
+
+/** Potencial completo de una sección (sin tope de meta) con la misma regla de asignación. */
+export function potencialSeccion(s: Supuestos, seccion: Zona): number {
+  return portafolioPiloto(s, seccion, Infinity, 99).reduce((a, o) => a + o.recuperadoMW, 0);
 }
 
 /** Totales del escenario para la cabecera y el paso del problema. */

@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ETAPAS, OPORTUNIDAD_INICIAL, PASOS, SUPUESTOS_INICIALES, type Supuestos } from "@/dominio/escenario";
-import { CALOR_RESIDUAL_MW, ajusteTecnologia, cruzarTodo, demanda, ejesMatriz, evaluar, fuente, mejorTecnologia, modelo, portafolio, tecnologia, type Oportunidad } from "@/dominio/motor";
+import { ETAPAS, META_PILOTO_INICIAL, OPORTUNIDAD_INICIAL, PASOS, SUPUESTOS_INICIALES, fraccionMeta, type Supuestos, type Zona } from "@/dominio/escenario";
+import { ajusteTecnologia, cruzarTodo, demanda, ejesMatriz, evaluar, fuente, mejorTecnologia, modelo, portafolioPiloto, tecnologia, type Oportunidad } from "@/dominio/motor";
+import { SupuestosFuentes } from "@/componentes/SupuestosFuentes";
 import { MapaTermico, type FaseEntrada, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
 import { IntroTermica } from "@/componentes/IntroTermica";
 import { PanelPaso } from "@/componentes/paneles";
@@ -39,6 +40,10 @@ export function Vitrina() {
 
   const [eleccion, setEleccion] = useState<Eleccion>({ ...OPORTUNIDAD_INICIAL });
   const [supuestos, setSupuestos] = useState<Supuestos>(SUPUESTOS_INICIALES);
+  // Piloto: sección que elige la refinería (la de la oportunidad inicial) y meta de calor recuperado.
+  const [seccion, setSeccion] = useState<Zona>(fuente(OPORTUNIDAD_INICIAL.fuente).zona);
+  const [metaPiloto, setMetaPiloto] = useState(META_PILOTO_INICIAL);
+  const [fuentesAbiertas, setFuentesAbiertas] = useState(false);
   const [parSel, setParSel] = useState<string | null>(`${OPORTUNIDAD_INICIAL.fuente}-${OPORTUNIDAD_INICIAL.demanda}`);
   const [puntoSel, setPuntoSel] = useState<string | null>(null);
   const [paleta, setPaleta] = useState<PaletaCalor>("ironbow");
@@ -68,7 +73,8 @@ export function Vitrina() {
 
   // Modelo: pares, portafolio y la oportunidad que sigue el recorrido.
   const pares = useMemo(() => cruzarTodo(supuestos.eficiencia), [supuestos.eficiencia]);
-  const cartera = useMemo(() => portafolio(supuestos), [supuestos]);
+  const cartera = useMemo(() => portafolioPiloto(supuestos, seccion, metaPiloto), [supuestos, seccion, metaPiloto]);
+  const candidatos = useMemo(() => portafolioPiloto(supuestos, seccion, Infinity, 99), [supuestos, seccion]);
   const op: Oportunidad = useMemo(() => {
     const e = evaluar(fuente(eleccion.fuente), demanda(eleccion.demanda), tecnologia(eleccion.tecnologia), modelo(eleccion.modelo), supuestos);
     const id = `${eleccion.fuente}-${eleccion.demanda}`;
@@ -116,6 +122,8 @@ export function Vitrina() {
   const reiniciar = useCallback(() => {
     setEleccion({ ...OPORTUNIDAD_INICIAL });
     setSupuestos(SUPUESTOS_INICIALES);
+    setSeccion(fuente(OPORTUNIDAD_INICIAL.fuente).zona);
+    setMetaPiloto(META_PILOTO_INICIAL);
     setParSel(`${OPORTUNIDAD_INICIAL.fuente}-${OPORTUNIDAD_INICIAL.demanda}`);
     setPaso(0);
   }, []);
@@ -162,16 +170,16 @@ export function Vitrina() {
   // Lecturas: se encienden a medida que avanza la historia.
   const compatibles = pares.filter((p) => p.estado === "COMPATIBLE").length;
   const viables = pares.filter((p) => p.estado !== "DESCARTADO").length;
-  const totalCartera = useMemo(() => cartera.reduce((a, o) => ({ usd: a.usd + o.ahorroUSD, co2: a.co2 + o.co2t, mw: a.mw + o.qUtil }), { usd: 0, co2: 0, mw: 0 }), [cartera]);
+  const totalPiloto = useMemo(() => cartera.reduce((a, o) => ({ usd: a.usd + o.ahorroUSD, mw: a.mw + o.recuperadoMW }), { usd: 0, mw: 0 }), [cartera]);
   const enCartera = paso >= I.portafolio;
   const lecturas = [
-    { etiqueta: "Calor residual", valor: CALOR_RESIDUAL_MW, unidad: "MWt", origen: "DECLARADO" as const, activo: true },
+    { etiqueta: "Meta del reto", valor: 7, unidad: "PJ · 4 años", origen: "DECLARADO" as const, activo: true },
     { etiqueta: "Puntos inventariados", valor: 15, unidad: "F+D", origen: "DECLARADO" as const, activo: paso >= I.inventario },
     { etiqueta: "Pares evaluados", valor: pares.length, origen: "ESTIMADO" as const, activo: paso >= I.cruce },
     { etiqueta: "Viables", valor: viables, unidad: `${compatibles} compat.`, origen: "ESTIMADO" as const, activo: paso >= I.cruce },
-    { etiqueta: enCartera ? "Calor útil · portafolio" : "Calor útil · piloto", valor: enCartera ? totalCartera.mw : op.qUtil, unidad: "MW", decimales: 1, origen: "ESTIMADO" as const, activo: paso >= I.tecnologia },
-    { etiqueta: enCartera ? "Ahorro/año · portafolio" : "Ahorro/año · piloto", valor: (enCartera ? totalCartera.usd : op.ahorroUSD) / 1e6, formato: (n: number) => `USD ${num(n, 2)} M`, origen: "ESTIMADO" as const, activo: paso >= I.evaluacion, resaltar: paso >= I.evaluacion },
-    { etiqueta: enCartera ? "CO₂ evitado · portafolio" : "CO₂ evitado · piloto", valor: enCartera ? totalCartera.co2 : op.co2t, unidad: "t/año", origen: "ESTIMADO" as const, activo: paso >= I.evaluacion },
+    { etiqueta: enCartera ? "Recuperado · piloto" : "Recuperado · proyecto", valor: enCartera ? totalPiloto.mw : op.qAprovechado, unidad: "MW", decimales: 1, origen: "ESTIMADO" as const, activo: paso >= I.tecnologia },
+    { etiqueta: "Aporte a la meta anual", valor: fraccionMeta(enCartera ? totalPiloto.mw : op.qAprovechado, supuestos.horas) * 100, unidad: "%", decimales: 1, origen: "ESTIMADO" as const, activo: paso >= I.tecnologia },
+    { etiqueta: enCartera ? "Ahorro/año · piloto" : "Ahorro/año · proyecto", valor: (enCartera ? totalPiloto.usd : op.ahorroUSD) / 1e6, formato: (n: number) => `USD ${num(n, 2)} M`, origen: "ESTIMADO" as const, activo: paso >= I.evaluacion, resaltar: paso >= I.evaluacion },
   ];
 
   const margen = useMemo(
@@ -193,6 +201,12 @@ export function Vitrina() {
       supuestos={supuestos}
       onSupuestos={setSupuestos}
       cartera={cartera}
+      candidatos={candidatos}
+      seccion={seccion}
+      onSeccion={setSeccion}
+      metaPiloto={metaPiloto}
+      onMetaPiloto={setMetaPiloto}
+      onFuentes={() => setFuentesAbiertas(true)}
       paleta={paleta}
       onPaleta={setPaleta}
       intensidad={intensidad}
@@ -232,6 +246,7 @@ export function Vitrina() {
         onPrecargado={alPrecargado}
         onSeleccionarPar={alPar}
         onSeleccionarPunto={alPunto}
+        seccionPiloto={actual.id === "portafolio" || actual.id === "impacto" ? seccion : null}
       />
 
       {/* ── Celular ── */}
@@ -268,6 +283,9 @@ export function Vitrina() {
           </span>
           <span className="cifra-tabular normal-case tracking-normal">10,3135° N · 75,4915° O</span>
           <span className="text-[#F5C518]">Datos ilustrativos</span>
+          <button type="button" onClick={() => setFuentesAbiertas(true)} className="text-[#FFB000] hover:text-white">
+            ⓘ Supuestos y fuentes
+          </button>
         </div>
         <div className="flex items-center gap-1.5">
           <button type="button" onClick={() => setTermografia((t) => !t)} className="border border-white/15 px-2.5 py-1 text-[#9B9BA1] hover:text-white">
@@ -385,6 +403,7 @@ export function Vitrina() {
         </div>
       </nav>
 
+      {fuentesAbiertas ? <SupuestosFuentes onCerrar={() => setFuentesAbiertas(false)} /> : null}
       {fase === "CARGA" ? <IntroTermica mapaListo={mapaListo} onTerminar={alTerminarIntro} /> : null}
     </div>
   );

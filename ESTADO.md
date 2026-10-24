@@ -5,7 +5,8 @@
 
 ## Resumen
 **Calor Rescatado · Mapa de Oportunidades Térmicas**: vitrina guiada de 10 pasos (Next.js 15 estático + Mapbox +
-deck.gl) que cuenta el uso del software sobre la Refinería de Cartagena, del problema (calor residual) al impacto.
+deck.gl) que cuenta el servicio (consultoría apoyada en software) sobre la Refinería de Cartagena, del reto (7 PJ)
+al portafolio del piloto y sus escenarios de escala.
 Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídrica. Datos ilustrativos.
 
 ## Estado actual
@@ -15,7 +16,7 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - Sin remoto de git.
 
 ## Siguiente paso
-1. Revisión del rediseño con Voltac (identidad, ubicación de procesos, textos y cifras; oportunidad protagonista F1 → D4).
+1. Revisión de la reestructuración (pasos, piloto de 1 MW, fuentes). Luego corregir guion, escenas y pitch del video.
 2. Decidir dónde se despliega (GitHub Pages con `BASE_PATH` o subdominio de Voltac) y crear un token de Mapbox
    restringido por URL a ese dominio.
 3. Luego: video motion de 1–2 min y pitch basados en esta vitrina.
@@ -34,9 +35,26 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
   demanda). El v1 usaba toda la fuente aunque la demanda fuera menor (p. ej. 9,1 MW para una demanda de 2 MW).
 - 2026-10-23 · Matriz del portafolio = mitad técnica (temperatura, continuidad, cercanía, facilidad) contra mitad
   económica (potencial, ahorro, retorno, CO₂) del puntaje; los cortes de prioridad son diagonales y coinciden con el color.
+- 2026-10-24 · Precios de referencia citados: electricidad USD 228/MWh (Afinia Nivel 4, oct. 2026, 728,67 COP/kWh ÷ TRM
+  3.200); calor USD 100/MWh (GNL USD 24,97/MBTU en caldera de 85 %; conservador USD 50); frío = electricidad ÷ COP 5.
+  Se descarta el USD 0,224/kWh del artefacto (sin fuente).
+- 2026-10-24 · Piloto = una sección elegida por la refinería con meta de calor recuperado (1 MW ≈ 1,7 % de la meta
+  anual a 8.400 h). Los proyectos se suman hasta la meta; el último se dimensiona a lo que falta; la prioridad se
+  calcula con el potencial completo del par. Intermedio = 5 secciones (supuesto); refinería = 58 MW (∝ 7 PJ).
+- 2026-10-24 · Modelo de negocio = cobro por portafolio (% del ahorro anual estimado, sin valor en pantalla). CAPEX,
+  ESCO, BOOT… son esquemas de financiamiento del proyecto para la refinería.
 - 2026-10-23 · Factores ilustrativos: CO₂ 0,20 t/MWh calor (gas natural), 0,14 t/MWh eléctrico; 95 m³ de gas por MWh.
 
 ## Bitácora
+### 2026-10-24 — Reestructuración: consultoría + software, piloto y fuentes citadas
+- Pasos nuevos: El reto, Datos de la planta, Compatibilidad, Propuestas de la IA (agente simulado y rotulado),
+  Financiamiento del proyecto, Portafolio del piloto (sección + meta), Escenarios de escala (cobro por portafolio).
+- `FUENTES_DATOS` + modal «Supuestos y fuentes» (botón en la barra superior y enlaces en los pasos 1, 7 y 10).
+- Motor: `precioMWh` por tipo de demanda (reemplaza PRECIO_RELATIVO), `portafolioPiloto`, `SECCIONES_PILOTO`.
+- Mapa: contorno ámbar de la sección del piloto en los pasos 8 y 10. Arreglo: avance negativo en la intro.
+- Se quitaron afirmaciones sin respaldo («calor ya pagado que nadie mide», reporte mensual con huella).
+- Pendiente: corregir guion, escenas y pitch del video; voz v2; nombre de marca.
+
 ### 2026-10-24 — Datos alineados con el artefacto del proyecto (Mapa de Oportunidades GIMI, C3)
 - Fuente: artefacto consolidado del líder del proyecto (claude.ai/artifact/QAJzcX2i3R85x3CpzRGq8t, revisado el 2026-10-24).
 - Horas de operación 8.000 → 8.400 h/año (base del análisis del equipo); electricidad USD 0,224/kWh (antes ≈ 0,11 implícito).
