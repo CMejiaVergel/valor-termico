@@ -15,7 +15,7 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - Sin remoto de git.
 
 ## Siguiente paso
-1. Revisión del recorrido con Voltac (textos de los 10 pasos, cifras, oportunidad protagonista F1 → D4).
+1. Revisión del rediseño con Voltac (identidad, ubicación de procesos, textos y cifras; oportunidad protagonista F1 → D4).
 2. Decidir dónde se despliega (GitHub Pages con `BASE_PATH` o subdominio de Voltac) y crear un token de Mapbox
    restringido por URL a ese dominio.
 3. Luego: video motion de 1–2 min y pitch basados en esta vitrina.
@@ -37,6 +37,17 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - 2026-10-23 · Factores ilustrativos: CO₂ 0,20 t/MWh calor (gas natural), 0,14 t/MWh eléctrico; 95 m³ de gas por MWh.
 
 ## Bitácora
+### 2026-10-24 — Rediseño visual (identidad propia frente a ConfluencIA)
+- Pedido de Voltac: las dos vitrinas van al mismo evento; Calor Rescatado debe verse distinta, con el mapa como protagonista,
+  los puntos dentro de las secciones reales de la planta y la conexión como tubería recta por la planta (no arcos).
+- Dirección elegida: termografía industrial. Satélite `satellite-v9` en gris, calor ironbow, retículas con °C, rótulos de
+  sección, racks y tuberías ortogonales (haz por carriles en el cruce), sin columnas 3D, sin vuelo desde el planeta (intro de
+  calibración con barrido), HUD: barra superior, visor del paso, lecturas, escala de temperatura, ficha plegable, línea de tiempo.
+- Ubicaciones redibujadas sobre la imagen satelital de referencia (`PX()`); D7 pasa de "terminal marítimo" (fuera de la
+  planta) a "Climatización de laboratorio". El criterio C4 usa la longitud de tubería por rack (≤600 m cumple, ≤1.300 condición).
+- Paso 6 = cómo paga la refinería: flujo de caja acumulado por modelo, inversión de cada parte y reparto del ahorro.
+- Tipografía: JetBrains Mono (titulares/HUD) + IBM Plex; se retiró Fraunces.
+
 ### 2026-10-23 — Vitrina guiada v2
 - Proyecto nuevo en esta carpeta; el HTML v1 y la guía PDF pasan a `referencia/`.
 - 10 pasos en 5 etapas (problema → diagnóstico → estructuración → decisión → ejecución), indicadores progresivos,

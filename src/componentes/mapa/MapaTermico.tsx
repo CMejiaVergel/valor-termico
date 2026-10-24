@@ -5,138 +5,129 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import type { Map as MapaMapbox, Marker } from "mapbox-gl";
 import type { MapboxOverlay } from "@deck.gl/mapbox";
 import type { Layer, PickingInfo } from "@deck.gl/core";
-import { DEMANDAS, FUENTES, PASOS, UNIDADES, type IdPaso } from "@/dominio/escenario";
-import type { Oportunidad, Par, Prioridad } from "@/dominio/motor";
-import { enCamino, hash01, desplazar, type Punto3D } from "@/componentes/mapa/geometria";
+import { DEMANDAS, FUENTES, PASOS, RACKS, ZONAS, type IdPaso } from "@/dominio/escenario";
+import { rutaTuberia, type Oportunidad, type Par, type Prioridad } from "@/dominio/motor";
+import { hash01, desplazar } from "@/componentes/mapa/geometria";
 import { rgbTemperatura } from "@/componentes/ui";
 
-// Mapa 3D de la vitrina (estructura heredada de la Vitrina de ConfluencIA
-// Hídrica): Mapbox Standard satélite con deck.gl intercalado en el mismo lienzo.
-// Capas por paso: columnas de potencia (fuentes por temperatura, demandas en
-// azul), plumas de calor que se pierde, mapa térmico, arcos de compatibilidad,
-// flujo de calor de la oportunidad, portafolio por prioridad y sensores.
+// Mapa de Calor Rescatado con lenguaje de cámara termográfica: satélite en
+// escala de grises, el calor en falso color como protagonista, retículas con
+// lectura de temperatura sobre cada fuente y demanda, y la conexión como
+// tubería ortogonal tendida por los racks de la planta (no arcos en el aire).
+// Vista casi cenital; sin columnas 3D ni vuelo desde el planeta.
 //
-// Entrada: la pantalla de carga tapa la precarga (planta, un zoom más cerca,
-// planeta y ensayo del vuelo); luego vuela desde el planeta hasta el paso 1.
-// Rendimiento: un solo requestAnimationFrame; las capas fijas solo se rehacen
-// cuando cambian los datos; lo que late cambia uniforms.
+// Rendimiento (heredado del trabajo en ConfluencIA): un solo lienzo con deck.gl
+// intercalado, capas fijas que solo se rehacen cuando cambian los datos, un solo
+// requestAnimationFrame que se detiene con la pestaña oculta.
 
-export type FaseEntrada = "CARGA" | "VUELO" | "LISTA";
-export type PaletaCalor = "clasica" | "ironbow" | "arcoiris" | "blanco";
+export type FaseEntrada = "CARGA" | "LISTA";
+export type PaletaCalor = "ironbow" | "clasica" | "arcoiris" | "blanco";
 
 export const PALETAS: Record<PaletaCalor, { nombre: string; colores: Array<[number, number, number]> }> = {
-  clasica: { nombre: "Clásica", colores: [[0, 174, 192], [74, 222, 128], [207, 232, 78], [255, 138, 61], [240, 71, 154], [239, 68, 68]] },
-  ironbow: { nombre: "Ironbow", colores: [[20, 0, 40], [90, 10, 110], [180, 30, 90], [230, 100, 20], [250, 190, 20], [255, 255, 255]] },
+  ironbow: { nombre: "Ironbow", colores: [[30, 4, 60], [110, 10, 120], [200, 40, 90], [240, 110, 20], [255, 200, 40], [255, 250, 220]] },
+  clasica: { nombre: "Clásica", colores: [[0, 120, 200], [0, 200, 160], [200, 230, 60], [255, 150, 40], [240, 60, 90], [230, 30, 30]] },
   arcoiris: { nombre: "Arcoíris", colores: [[0, 30, 220], [0, 200, 220], [0, 220, 80], [230, 220, 0], [255, 120, 0], [230, 30, 30]] },
-  blanco: { nombre: "Blanco caliente", colores: [[30, 30, 30], [80, 80, 80], [130, 130, 130], [190, 190, 190], [230, 230, 230], [255, 255, 255]] },
+  blanco: { nombre: "Blanco caliente", colores: [[40, 40, 40], [90, 90, 90], [140, 140, 140], [190, 190, 190], [230, 230, 230], [255, 255, 255]] },
 };
 
-const AZUL: [number, number, number] = [96, 165, 250];
-const VERDE: [number, number, number] = [74, 222, 128];
-const AMBAR: [number, number, number] = [250, 204, 21];
-const GRIS: [number, number, number] = [120, 140, 145];
-const LIMA: [number, number, number] = [207, 232, 78];
-export const COLOR_PRIORIDAD: Record<Prioridad, [number, number, number]> = { P1: [74, 222, 128], P2: [0, 174, 192], P3: [250, 204, 21], P4: [120, 140, 145] };
+const FRIO: [number, number, number] = [90, 200, 250];
+const VERDE: [number, number, number] = [61, 220, 132];
+const AMBAR: [number, number, number] = [255, 176, 0];
+const SELECCION: [number, number, number] = [255, 225, 77];
+export const COLOR_PRIORIDAD: Record<Prioridad, [number, number, number]> = { P1: [61, 220, 132], P2: [255, 176, 0], P3: [255, 120, 60], P4: [130, 130, 136] };
 
-interface Nodo {
+interface Tuberia {
   id: string;
-  lng: number;
-  lat: number;
-  nombre: string;
-  sub: string;
-  fuente: boolean;
-  potencia: number;
-  color: [number, number, number];
-  tenue: boolean;
-}
-
-interface Arco {
-  id: string;
-  camino: Punto3D[];
+  camino: Array<[number, number, number]>;
   color: [number, number, number];
   ancho: number;
   alfa: number;
-  /** Colores de origen y destino para las partículas de flujo. */
   desde: [number, number, number];
-  hasta: [number, number, number];
   flujo: boolean;
-}
-
-/** Arco 3D entre dos puntos de la planta (más bajo que el de ConfluencIA: aquí las distancias son de cientos de metros). */
-function arcoPlanta(a: { lng: number; lat: number }, b: { lng: number; lat: number }, n = 48): Punto3D[] {
-  const dx = (a.lng - b.lng) * 111_320 * Math.cos((a.lat * Math.PI) / 180);
-  const dy = (a.lat - b.lat) * 111_320;
-  const alto = Math.min(170, 0.35 * Math.hypot(dx, dy) + 28);
-  return Array.from({ length: n }, (_, i) => {
-    const t = i / (n - 1);
-    return [a.lng + (b.lng - a.lng) * t, a.lat + (b.lat - a.lat) * t, alto * Math.sin(Math.PI * t)];
-  });
+  /** Longitud acumulada por vértice (para mover el flujo a velocidad constante). */
+  largos: number[];
 }
 
 const PASO_ID = (i: number): IdPaso => PASOS[Math.max(0, Math.min(PASOS.length - 1, i))]!.id;
 const ENFOQUE: IdPaso[] = ["tecnologia", "modelo", "evaluacion", "monitoreo"];
 
+/** Intensidad del mapa térmico por paso: protagonista al inicio, de fondo cuando hay tuberías. */
+const INTENSIDAD_PASO: Record<IdPaso, number> = { problema: 1.25, inventario: 0.7, termico: 1, cruce: 0.35, tecnologia: 0.45, modelo: 0.4, evaluacion: 0.4, portafolio: 0.35, monitoreo: 0.45, impacto: 0.6 };
+
 interface Escena {
-  /** Multiplicador de la altura de las columnas: de cerca se bajan para no tapar el arco. */
-  alturaColumnas: number;
-  nodos: Nodo[];
-  arcos: Arco[];
-  plumas: boolean;
-  calor: boolean;
-  sensores: Punto3D[];
-  etiquetas: Set<string>;
+  id: IdPaso;
+  tuberias: Tuberia[];
+  pulsos: boolean;
+  sensores: Array<[number, number]>;
+  /** Puntos con retícula visible y los que están en foco. */
+  visibles: Set<string>;
+  foco: Set<string>;
+}
+
+function tuberia(id: string, fId: string, dId: string, color: [number, number, number], ancho: number, alfa: number, flujo: boolean, carril = 0): Tuberia {
+  const f = FUENTES.find((x) => x.id === fId)!;
+  const d = DEMANDAS.find((x) => x.id === dId)!;
+  const camino = rutaTuberia(f, d, carril).puntos.map(([lng, lat]) => [lng, lat, 2] as [number, number, number]);
+  const largos = [0];
+  for (let i = 1; i < camino.length; i++) {
+    const a = camino[i - 1]!, b = camino[i]!;
+    largos.push(largos[i - 1]! + Math.hypot((a[0] - b[0]) * Math.cos((a[1] * Math.PI) / 180), a[1] - b[1]));
+  }
+  return { id, camino, color, ancho, alfa, desde: rgbTemperatura(f.tMax), flujo, largos };
+}
+
+/** Punto a una fracción t de la tubería (por longitud). */
+function enTuberia(t: Tuberia, f: number): [number, number, number] {
+  const total = t.largos[t.largos.length - 1]!;
+  const objetivo = f * total;
+  let i = 1;
+  while (i < t.largos.length - 1 && t.largos[i]! < objetivo) i++;
+  const a = t.camino[i - 1]!, b = t.camino[i]!;
+  const tramo = t.largos[i]! - t.largos[i - 1]! || 1;
+  const k = (objetivo - t.largos[i - 1]!) / tramo;
+  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, 3];
 }
 
 function construirEscena(paso: number, pares: Par[], oportunidad: Oportunidad, cartera: Oportunidad[], parSel: string | null): Escena {
   const id = PASO_ID(paso);
   const enfoque = ENFOQUE.includes(id);
-  const parOp = `${oportunidad.fuente.id}-${oportunidad.demanda.id}`;
-  const fuentes: Nodo[] = FUENTES.map((f) => ({
-    id: f.id, lng: f.lng, lat: f.lat, nombre: `${f.id} · ${f.nombre}`, sub: `${f.tMin}–${f.tMax} °C · ${f.potencia} MW`, fuente: true, potencia: f.potencia,
-    color: rgbTemperatura(f.tMax), tenue: enfoque && f.id !== oportunidad.fuente.id,
-  }));
-  const demandas: Nodo[] = DEMANDAS.map((d) => ({
-    id: d.id, lng: d.lng, lat: d.lat, nombre: `${d.id} · ${d.nombre}`, sub: `${d.tReq} °C · ${d.potencia} MW`, fuente: false, potencia: d.potencia,
-    color: AZUL, tenue: enfoque && d.id !== oportunidad.demanda.id,
-  }));
-  const nodos = id === "problema" ? fuentes : [...fuentes, ...demandas];
-  let arcos: Arco[] = [];
-  const arcoDe = (fId: string, dId: string, color: [number, number, number], ancho: number, alfa: number, flujo: boolean): Arco => {
-    const f = FUENTES.find((x) => x.id === fId)!;
-    const d = DEMANDAS.find((x) => x.id === dId)!;
-    return { id: `${fId}-${dId}`, camino: arcoPlanta(f, d), color, ancho, alfa, desde: rgbTemperatura(f.tMax), hasta: AZUL, flujo };
-  };
+  const opId = `${oportunidad.fuente.id}-${oportunidad.demanda.id}`;
+  let tuberias: Tuberia[] = [];
   if (id === "cruce") {
-    arcos = pares.map((p) => {
+    // Haz de tuberías: cada par viable va por su propio carril del rack (2,5 m entre carriles).
+    const viables = pares.filter((p) => p.estado !== "DESCARTADO");
+    tuberias = viables.map((p, k) => {
       const sel = p.id === parSel;
-      const color = p.estado === "COMPATIBLE" ? VERDE : p.estado === "CONDICIONADO" ? AMBAR : GRIS;
-      return arcoDe(p.fuente.id, p.demanda.id, sel ? LIMA : color, sel ? 7 : p.estado === "DESCARTADO" ? 1.2 : 2.6, sel ? 255 : p.estado === "DESCARTADO" ? 70 : 205, false);
+      return tuberia(p.id, p.fuente.id, p.demanda.id, sel ? SELECCION : p.estado === "COMPATIBLE" ? VERDE : AMBAR, sel ? 6 : 1.8, sel ? 255 : 190, sel, (k - viables.length / 2) * 2.5);
     });
+    tuberias.sort((a, b) => (a.id === parSel ? 1 : b.id === parSel ? -1 : 0));
   } else if (id === "portafolio" || id === "impacto") {
-    arcos = cartera.map((o) => {
-      const esOp = `${o.fuente.id}-${o.demanda.id}` === parOp;
-      return arcoDe(o.fuente.id, o.demanda.id, COLOR_PRIORIDAD[o.prioridad], esOp ? 7 : 4.5, 240, id === "impacto" || esOp);
+    tuberias = cartera.map((o, k) => {
+      const oid = `${o.fuente.id}-${o.demanda.id}`;
+      return tuberia(oid, o.fuente.id, o.demanda.id, oid === opId ? SELECCION : COLOR_PRIORIDAD[o.prioridad], oid === opId ? 6 : 4, 240, id === "impacto" || oid === opId, (k - cartera.length / 2) * 4);
     });
   } else if (enfoque) {
-    arcos = [arcoDe(oportunidad.fuente.id, oportunidad.demanda.id, LIMA, 7, 255, true)];
+    tuberias = [tuberia(opId, oportunidad.fuente.id, oportunidad.demanda.id, SELECCION, 7, 255, true)];
   }
-  const fOp = FUENTES.find((f) => f.id === oportunidad.fuente.id)!;
-  const dOp = DEMANDAS.find((d) => d.id === oportunidad.demanda.id)!;
-  const sensores: Punto3D[] = id === "monitoreo" || id === "impacto" ? [[fOp.lng, fOp.lat, 0], [dOp.lng, dOp.lat, 0]] : [];
-  const etiquetas = new Set<string>(
-    enfoque ? [oportunidad.fuente.id, oportunidad.demanda.id]
+  const todos = [...FUENTES.map((f) => f.id), ...DEMANDAS.map((d) => d.id)];
+  const visibles = new Set<string>(
+    id === "problema" ? FUENTES.map((f) => f.id)
+    : enfoque ? [oportunidad.fuente.id, oportunidad.demanda.id]
     : id === "portafolio" || id === "impacto" ? cartera.flatMap((o) => [o.fuente.id, o.demanda.id])
-    : nodos.map((n) => n.id),
+    : todos,
   );
-  return { alturaColumnas: enfoque ? 0.3 : 1, nodos, arcos, plumas: id === "problema", calor: id === "termico", sensores, etiquetas };
+  const foco = new Set<string>(enfoque ? [oportunidad.fuente.id, oportunidad.demanda.id] : id === "cruce" && parSel ? parSel.split("-") : []);
+  const sensores: Array<[number, number]> =
+    id === "monitoreo" || id === "impacto" ? [[oportunidad.fuente.lng, oportunidad.fuente.lat], [oportunidad.demanda.lng, oportunidad.demanda.lat]] : [];
+  return { id, tuberias, pulsos: id === "problema" || id === "inventario", sensores, visibles, foco };
 }
 
 /** Puntos del mapa térmico: una nube alrededor de cada fuente, pesada por potencia y temperatura (determinista). */
 const PUNTOS_CALOR = FUENTES.flatMap((f) =>
-  Array.from({ length: 40 }, (_, k) => {
-    const r = 15 + hash01(`${f.id}r${k}`) * 110;
+  Array.from({ length: 46 }, (_, k) => {
+    const r = 6 + hash01(`${f.id}r${k}`) * 70;
     const [lng, lat] = desplazar(f.lng, f.lat, r, hash01(`${f.id}a${k}`) * Math.PI * 2);
-    return { p: [lng, lat] as [number, number], w: (f.potencia * (f.tMax / 100)) / (1 + r / 60) };
+    return { p: [lng, lat] as [number, number], w: (f.potencia * (f.tMax / 100)) / (1 + r / 35) };
   }),
 );
 const PESO_MAX = Math.max(...PUNTOS_CALOR.map((x) => x.w));
@@ -144,96 +135,74 @@ const GEOJSON_CALOR = {
   type: "FeatureCollection" as const,
   features: PUNTOS_CALOR.map((x) => ({ type: "Feature" as const, properties: { w: x.w / PESO_MAX }, geometry: { type: "Point" as const, coordinates: x.p } })),
 };
+const GEOJSON_ZONAS = {
+  type: "FeatureCollection" as const,
+  features: ZONAS.map((z) => ({ type: "Feature" as const, properties: { nombre: z.nombre }, geometry: { type: "Polygon" as const, coordinates: [[...z.poligono, z.poligono[0]!]] } })),
+};
+const GEOJSON_RACKS = {
+  type: "FeatureCollection" as const,
+  features: [
+    ...RACKS.horizontales.map((lat) => ({ type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: [[RACKS.limites.oeste, lat], [RACKS.limites.este, lat]] } })),
+    ...RACKS.verticales.map((lng) => ({ type: "Feature" as const, properties: {}, geometry: { type: "LineString" as const, coordinates: [[lng, RACKS.limites.norte], [lng, RACKS.limites.sur]] } })),
+  ],
+};
 
-/**
- * Mapa térmico como capa nativa de Mapbox (la HeatmapLayer de deck.gl no dibuja
- * con el lienzo compartido). Se vuelve a crear tras cada cambio de estilo.
- */
 function colorCalor(paleta: PaletaCalor): unknown[] {
   const c = PALETAS[paleta].colores;
-  const paradas = c.flatMap((rgb, i) => [0.12 + (i / (c.length - 1)) * 0.88, `rgba(${rgb.join(",")},${(0.45 + (i / (c.length - 1)) * 0.5).toFixed(2)})`]);
+  const paradas = c.flatMap((rgb, i) => [0.08 + (i / (c.length - 1)) * 0.92, `rgba(${rgb.join(",")},${(0.5 + (i / (c.length - 1)) * 0.45).toFixed(2)})`]);
   return ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", ...paradas];
 }
-function asegurarCapaCalor(m: MapaMapbox, visible: boolean, paleta: PaletaCalor, intensidad: number) {
-  // isStyleLoaded() es falso mientras cargan teselas: no sirve de compuerta. Si el
-  // estilo de verdad no está listo, addSource lanza y se reintenta al quedar quieto.
+
+/**
+ * Capas nativas de Mapbox: satélite en gris (modo termografía), secciones de la
+ * planta, racks y mapa térmico. Se vuelven a crear tras un cambio de estilo.
+ * isStyleLoaded() es falso mientras cargan teselas: si el estilo de verdad no
+ * está listo, addSource lanza y se reintenta cuando el mapa queda quieto.
+ */
+function aplicarCapasNativas(m: MapaMapbox, termografia: boolean, paleta: PaletaCalor, intensidad: number) {
+  const intentar = () => {
+    if (m.getLayer("satellite")) {
+      m.setPaintProperty("satellite", "raster-saturation", termografia ? -0.92 : 0);
+      m.setPaintProperty("satellite", "raster-brightness-max", termografia ? 0.5 : 1);
+      m.setPaintProperty("satellite", "raster-contrast", termografia ? 0.12 : 0);
+    }
+    if (!m.getSource("zonas")) m.addSource("zonas", { type: "geojson", data: GEOJSON_ZONAS });
+    if (!m.getLayer("zonas-borde")) m.addLayer({ id: "zonas-borde", type: "line", source: "zonas", paint: { "line-color": "rgba(255,255,255,0.32)", "line-width": 1, "line-dasharray": [3, 3] } });
+    if (!m.getSource("racks")) m.addSource("racks", { type: "geojson", data: GEOJSON_RACKS });
+    if (!m.getLayer("racks")) m.addLayer({ id: "racks", type: "line", source: "racks", paint: { "line-color": "rgba(255,255,255,0.16)", "line-width": ["interpolate", ["linear"], ["zoom"], 15, 2, 18, 7] } });
+    if (!m.getSource("calor")) m.addSource("calor", { type: "geojson", data: GEOJSON_CALOR });
+    if (!m.getLayer("calor")) {
+      m.addLayer({
+        id: "calor",
+        type: "heatmap",
+        source: "calor",
+        paint: {
+          "heatmap-weight": ["get", "w"],
+          "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 14, 10, 16, 38, 18, 150],
+          "heatmap-opacity": 0.9,
+        },
+      });
+    }
+    m.setPaintProperty("calor", "heatmap-intensity", intensidad);
+    m.setPaintProperty("calor", "heatmap-color", colorCalor(paleta) as never);
+  };
   try {
-    aplicarCapaCalor(m, visible, paleta, intensidad);
+    intentar();
   } catch {
     m.once("idle", () => {
       try {
-        aplicarCapaCalor(m, visible, paleta, intensidad);
+        intentar();
       } catch {
         // El siguiente cambio de paso o de estilo lo vuelve a intentar.
       }
     });
   }
 }
-function aplicarCapaCalor(m: MapaMapbox, visible: boolean, paleta: PaletaCalor, intensidad: number) {
-  if (!m.getSource("calor")) m.addSource("calor", { type: "geojson", data: GEOJSON_CALOR });
-  if (!m.getLayer("calor")) {
-    m.addLayer({
-      id: "calor",
-      type: "heatmap",
-      source: "calor",
-      paint: {
-        "heatmap-weight": ["get", "w"],
-        "heatmap-radius": ["interpolate", ["exponential", 2], ["zoom"], 13, 8, 16, 45, 18, 170],
-        "heatmap-opacity": 0.85,
-      },
-    });
-  }
-  m.setLayoutProperty("calor", "visibility", visible ? "visible" : "none");
-  m.setPaintProperty("calor", "heatmap-intensity", intensidad);
-  m.setPaintProperty("calor", "heatmap-color", colorCalor(paleta) as never);
-}
 
-/** Partículas de calor que suben desde cada fuente (paso 1: el calor que se pierde). */
-const ALTO_COLUMNA = 9; // m de columna por MW
-const PLUMAS = FUENTES.flatMap((f) =>
-  Array.from({ length: Math.round(8 + f.potencia * 1.6) }, (_, k) => {
-    // Nacen en la punta de la columna y se abren al subir (el calor que se va al aire).
-    const angulo = hash01(`${f.id}q${k}`) * Math.PI * 2;
-    const [lng0, lat0] = desplazar(f.lng, f.lat, hash01(`${f.id}p${k}`) * 10, angulo);
-    const [lng1, lat1] = desplazar(f.lng, f.lat, 25 + hash01(`${f.id}d${k}`) * 45, angulo);
-    return { lng0, lat0, lng1, lat1, base: f.potencia * ALTO_COLUMNA, fase: hash01(`${f.id}f${k}`), color: rgbTemperatura(f.tMax), alto: 70 + f.potencia * 5 };
-  }),
-);
-
-/** Refinerías y zonas industriales para la vista de país (solo Cartagena es el piloto; las demás son ilustrativas). */
-interface Sitio {
-  id: string;
-  nombre: string;
-  sub: string;
-  lng: number;
-  lat: number;
-  piloto: boolean;
-}
-const SITIOS: Sitio[] = [
-  { id: "cartagena", nombre: "Refinería de Cartagena", sub: "piloto · Mamonal", lng: -75.4962, lat: 10.3158, piloto: true },
-  { id: "barrancabermeja", nombre: "Refinería de Barrancabermeja", sub: "posible réplica (ilustrativo)", lng: -73.86, lat: 7.06, piloto: false },
-  { id: "barranquilla", nombre: "Zona industrial Barranquilla", sub: "posible réplica (ilustrativo)", lng: -74.79, lat: 10.99, piloto: false },
-  { id: "yumbo", nombre: "Yumbo · Cali", sub: "posible réplica (ilustrativo)", lng: -76.49, lat: 3.58, piloto: false },
-  { id: "bogota", nombre: "Sabana de Bogotá", sub: "posible réplica (ilustrativo)", lng: -74.21, lat: 4.71, piloto: false },
-  { id: "medellin", nombre: "Valle de Aburrá", sub: "posible réplica (ilustrativo)", lng: -75.6, lat: 6.17, piloto: false },
-];
-
-type Nivel = 0 | 1 | 2 | 3;
-const nivelPara = (zoom: number): Nivel => (zoom < 4 ? 0 : zoom < 9.5 ? 1 : zoom < 13.5 ? 2 : 3);
-
-const CAMARA_PLANETA = { center: [-74.6, 9.8] as [number, number], zoom: 1.6, pitch: 0, bearing: 0 };
-const LIMITES_NAVEGACION: [[number, number], [number, number]] = [[-83, -6], [-64, 15.5]];
-const DURACION_VUELO_MS = 13000;
-const suave = (t: number) => (1 - Math.cos(Math.PI * t)) / 2;
 const SOBRE_EL_SUELO = { depthCompare: "always" } as const;
 const MANEJADORES = ["dragPan", "dragRotate", "scrollZoom", "boxZoom", "keyboard", "doubleClickZoom", "touchZoomRotate", "touchPitch"] as const;
-
-function interaccion(m: MapaMapbox, activa: boolean) {
-  for (const h of MANEJADORES) {
-    if (activa) m[h].enable();
-    else m[h].disable();
-  }
-}
+/** Navegación acotada a la refinería y sus alrededores. */
+const LIMITES: [[number, number], [number, number]] = [[-75.53, 10.29], [-75.46, 10.34]];
 
 function esperarIdle(m: MapaMapbox, tope: number): Promise<void> {
   return new Promise((resolver) => {
@@ -247,7 +216,6 @@ function esperarIdle(m: MapaMapbox, tope: number): Promise<void> {
   });
 }
 
-/** Resolución del lienzo acotada (1,5× normal, 1× en pantallas muy grandes), como en ConfluencIA. */
 function limitarResolucion(): () => void {
   const real = window.devicePixelRatio || 1;
   const limite = window.innerWidth * real > 2560 ? 1 : Math.min(real, 1.5);
@@ -257,13 +225,6 @@ function limitarResolucion(): () => void {
   return () => {
     if (original) Object.defineProperty(window, "devicePixelRatio", original);
     else Reflect.deleteProperty(window, "devicePixelRatio");
-  };
-}
-
-function estiloMapa(satelite: boolean) {
-  return {
-    style: satelite ? "mapbox://styles/mapbox/standard-satellite" : "mapbox://styles/mapbox/standard",
-    config: { basemap: { lightPreset: satelite ? "dusk" : "night", showPointOfInterestLabels: false, showTransitLabels: false } },
   };
 }
 
@@ -279,53 +240,47 @@ function camaraDe(paso: number, oportunidad: Oportunidad, ajusteZoom: number) {
 interface Props {
   token: string;
   paso: number;
-  satelite: boolean;
-  orbitar: boolean;
+  /** true: satélite en gris (termografía); false: color real. */
+  termografia: boolean;
   pares: Par[];
   oportunidad: Oportunidad;
   cartera: Oportunidad[];
   parSeleccionado: string | null;
   paleta: PaletaCalor;
+  /** Intensidad elegida en el paso del mapa térmico. */
   intensidad: number;
   fase: FaseEntrada;
-  movimientoReducido: boolean;
-  duracionCargaMs: number;
   margen: Margen;
   ajusteZoom: number;
-  onFinEntrada: () => void;
+  /** La cámara del paso 1 ya tiene sus teselas: la intro puede revelar el mapa. */
+  onPrecargado: () => void;
   onSeleccionarPar: (id: string) => void;
   onSeleccionarPunto: (id: string) => void;
 }
 
 function MapaTermicoBase(props: Props) {
-  const { token, paso, satelite, orbitar, pares, oportunidad, cartera, parSeleccionado, paleta, intensidad, fase, movimientoReducido, duracionCargaMs, margen, ajusteZoom } = props;
+  const { token, paso, termografia, pares, oportunidad, cartera, parSeleccionado, paleta, intensidad, fase, margen, ajusteZoom } = props;
   const contenedor = useRef<HTMLDivElement>(null);
-  const envoltorio = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaMapbox | null>(null);
   const overlay = useRef<MapboxOverlay | null>(null);
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inicioPaso = useRef(0);
   const escena = useMemo(() => construirEscena(paso, pares, oportunidad, cartera, parSeleccionado), [paso, pares, oportunidad, cartera, parSeleccionado]);
-  const vivo = useRef({ escena, orbitar, fase, paleta, intensidad });
-  vivo.current = { escena, orbitar, fase, paleta, intensidad };
+  const intensidadPaso = escena.id === "termico" ? intensidad : INTENSIDAD_PASO[escena.id];
+  const vivo = useRef({ escena, termografia, paleta, intensidadPaso });
+  vivo.current = { escena, termografia, paleta, intensidadPaso };
   const callbacks = useRef(props);
   callbacks.current = props;
-  const pantalla = useRef({ margen, ajusteZoom, oportunidad, paso });
-  pantalla.current = { margen, ajusteZoom, oportunidad, paso };
+  const pantalla = useRef({ margen, ajusteZoom, oportunidad });
+  pantalla.current = { margen, ajusteZoom, oportunidad };
   const marcadores = useRef<Map<string, Marker>>(new Map());
-  const claseMarcador = useRef<typeof import("mapbox-gl").default.Marker | null>(null);
-  const montaje = useRef(0);
-  const duracionCarga = useRef(duracionCargaMs);
-  duracionCarga.current = duracionCargaMs;
-  const sateliteAplicado = useRef(satelite);
 
   // Mapa + overlay, una vez.
   useEffect(() => {
     let cancelado = false;
     let cuadro = 0;
     let pintar: ((ahora: number) => void) | null = null;
-    montaje.current = performance.now();
     inicioPaso.current = performance.now();
     const alVisibilidad = () => {
       if (document.visibilityState === "visible" && !cuadro && pintar) cuadro = requestAnimationFrame(pintar);
@@ -335,220 +290,188 @@ function MapaTermicoBase(props: Props) {
       const [{ default: mapboxgl }, { MapboxOverlay: Overlay }, capas] = await Promise.all([import("mapbox-gl"), import("@deck.gl/mapbox"), import("@deck.gl/layers")]);
       if (cancelado || !contenedor.current) return;
       mapboxgl.accessToken = token;
-      const c0 = camaraDe(0, pantalla.current.oportunidad, 0);
       const m = new mapboxgl.Map({
         container: contenedor.current,
-        ...estiloMapa(sateliteAplicado.current),
-        ...c0,
-        projection: "globe",
+        // Raster satelital puro: más liviano que Standard y se puede pasar a gris.
+        style: "mapbox://styles/mapbox/satellite-v9",
+        ...camaraDe(0, pantalla.current.oportunidad, pantalla.current.ajusteZoom),
+        maxBounds: LIMITES,
         renderWorldCopies: false,
         fadeDuration: 0,
-        maxPitch: 75,
-        maxTileCacheSize: 1200,
+        maxPitch: 60,
         antialias: false,
-        language: "es",
+        attributionControl: true,
       });
-      interaccion(m, false);
+      for (const h of MANEJADORES) m[h].disable();
+      // El padding no es opción del constructor: se aplica al crear para centrar la planta en el espacio libre.
+      m.setPadding(pantalla.current.margen);
       m.on("error", (e) => {
         if (String((e as { error?: { message?: string } }).error?.message ?? "").match(/token|401|403/i)) setError("No se pudo cargar el mapa: revise el token de Mapbox.");
       });
       const o = new Overlay({ interleaved: true, layers: [] });
       m.addControl(o);
-      m.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "bottom-right");
+      m.addControl(new mapboxgl.ScaleControl({ maxWidth: 110, unit: "metric" }), "bottom-right");
       const observador = new ResizeObserver(() => m.resize());
       observador.observe(contenedor.current);
       m.once("remove", () => observador.disconnect());
       mapa.current = m;
       overlay.current = o;
-      claseMarcador.current = mapboxgl.Marker;
-      m.on("load", () => setListo(true));
-      // Tras cada cambio de estilo (satélite ↔ nocturno) la capa nativa de calor se vuelve a crear.
       m.on("style.load", () => {
-        const { escena: e, paleta: pal, intensidad: inten } = vivo.current;
-        asegurarCapaCalor(m, e.calor, pal, inten);
+        const v = vivo.current;
+        aplicarCapasNativas(m, v.termografia, v.paleta, v.intensidadPaso);
+      });
+      m.on("load", async () => {
+        const v = vivo.current;
+        aplicarCapasNativas(m, v.termografia, v.paleta, v.intensidadPaso);
+        await esperarIdle(m, 7000);
+        setListo(true);
+        callbacks.current.onPrecargado();
       });
 
-      const { ColumnLayer, PathLayer, ScatterplotLayer, PolygonLayer } = capas;
+      // Etiquetas de las secciones de la planta (HTML, tipografía de la interfaz).
+      for (const z of ZONAS) {
+        const el = document.createElement("div");
+        el.className = "vt-zona";
+        el.textContent = z.nombre;
+        new mapboxgl.Marker({ element: el, anchor: "top-left" }).setLngLat([z.etiqueta.lng, z.etiqueta.lat]).addTo(m);
+      }
+      // Retículas de fuentes y demandas con su lectura de temperatura.
+      for (const p of [...FUENTES.map((f) => ({ id: f.id, nombre: f.nombre, temp: `${f.tMax}°C`, sub: `${f.potencia} MW`, fuente: true, lng: f.lng, lat: f.lat })), ...DEMANDAS.map((d) => ({ id: d.id, nombre: d.nombre, temp: `${d.tReq}°C`, sub: `${d.potencia} MW`, fuente: false, lng: d.lng, lat: d.lat }))]) {
+        const el = document.createElement("button");
+        el.type = "button";
+        el.className = `vt-mira ${p.fuente ? "vt-mira--fuente" : "vt-mira--demanda"}`;
+        el.setAttribute("aria-label", `${p.id} ${p.nombre}`);
+        const cruz = document.createElement("span");
+        cruz.className = "vt-mira__cruz";
+        const lectura = document.createElement("span");
+        lectura.className = "vt-mira__lectura";
+        const temp = document.createElement("b");
+        temp.textContent = `${p.fuente ? "▲" : "▼"} ${p.temp}`;
+        const id = document.createElement("i");
+        id.textContent = p.id;
+        const nombre = document.createElement("small");
+        nombre.textContent = `${p.nombre} · ${p.sub}`;
+        lectura.append(id, temp, nombre);
+        el.append(cruz, lectura);
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          callbacks.current.onSeleccionarPunto(p.id);
+        });
+        marcadores.current.set(p.id, new mapboxgl.Marker({ element: el, anchor: "center" }).setLngLat([p.lng, p.lat]).addTo(m));
+      }
+
+      const { PathLayer, ScatterplotLayer } = capas;
       let escenaFija: Escena | null = null;
       let crecerFijo = -1;
-      let nivelFijo: Nivel | -1 = -1;
-      let calorFijo = "";
       let fijas: Layer[] = [];
-      let quieto = false;
-
       pintar = (ahora: number) => {
         cuadro = 0;
-        const { escena: e, orbitar: orb, fase: f, paleta: pal, intensidad: inten } = vivo.current;
-        const nivel = nivelPara(mapa.current?.getZoom() ?? 0);
-        if (nivel !== nivelFijo) {
-          if (envoltorio.current) envoltorio.current.dataset.nivel = String(nivel);
-          if (nivel === 3) inicioPaso.current = ahora;
-        }
-        const crecer = Math.min(1, (ahora - inicioPaso.current) / 1400);
-        const claveCalor = `${pal}|${inten}`;
-        const cambian = e !== escenaFija || crecer !== crecerFijo || nivel !== nivelFijo || claveCalor !== calorFijo;
-        const estatico = f !== "LISTA" || nivel < 3;
-        if (estatico && !cambian && quieto) {
-          if (document.visibilityState === "visible") cuadro = requestAnimationFrame(pintar!);
-          return;
-        }
-        quieto = estatico;
-        if (cambian) {
+        const e = vivo.current.escena;
+        const crecer = Math.min(1, (ahora - inicioPaso.current) / 1100);
+        if (e !== escenaFija || crecer !== crecerFijo) {
           escenaFija = e;
           crecerFijo = crecer;
-          nivelFijo = nivel;
-          calorFijo = claveCalor;
-          fijas =
-            nivel < 2
-              ? [
-                  new ScatterplotLayer<Sitio>({
-                    id: "sitios",
-                    parameters: SOBRE_EL_SUELO,
-                    data: SITIOS,
-                    getPosition: (s) => [s.lng, s.lat, 0],
-                    getRadius: (s) => (s.piloto ? 9 : 6),
-                    radiusUnits: "pixels",
-                    getFillColor: (s) => (s.piloto ? [255, 138, 61, 245] : [0, 174, 192, 200]),
-                    getLineColor: [255, 255, 255, 200],
-                    stroked: true,
-                    lineWidthMinPixels: 1.5,
-                  }),
-                ]
-              : nivel === 2
-                ? [
-                    new ScatterplotLayer<Nodo>({
-                      id: "puntos",
-                      parameters: SOBRE_EL_SUELO,
-                      data: e.nodos,
-                      getPosition: (n) => [n.lng, n.lat, 0],
-                      getRadius: 5,
-                      radiusUnits: "pixels",
-                      getFillColor: (n) => [...n.color, 235] as [number, number, number, number],
-                      getLineColor: [255, 255, 255, 200],
-                      stroked: true,
-                      lineWidthMinPixels: 1.2,
-                    }),
-                  ]
-                : [
-                    new PolygonLayer<(typeof UNIDADES)[number]>({
-                      id: "unidades",
-                      data: UNIDADES,
-                      extruded: true,
-                      getPolygon: (u) => u.poligono,
-                      getElevation: (u) => u.altura * crecer,
-                      getFillColor: (u) => [...u.color, e.calor ? 90 : 170] as [number, number, number, number],
-                      getLineColor: [0, 174, 192, 120],
-                      updateTriggers: { getElevation: crecer, getFillColor: e.calor },
-                    }),
-                    new ColumnLayer<Nodo>({
-                      id: "columnas",
-                      data: e.nodos,
-                      diskResolution: 28,
-                      radius: 15,
-                      extruded: true,
-                      pickable: true,
-                      getPosition: (n) => [n.lng, n.lat],
-                      getElevation: (n) => n.potencia * ALTO_COLUMNA * e.alturaColumnas * crecer,
-                      getFillColor: (n) => [...n.color, e.calor ? 70 : n.tenue ? 70 : 240] as [number, number, number, number],
-                      onClick: (info: PickingInfo<Nodo>) => {
-                        if (info.object) callbacks.current.onSeleccionarPunto(info.object.id);
-                      },
-                      updateTriggers: { getElevation: crecer, getFillColor: [e, e.calor] },
-                    }),
-                    new PathLayer<Arco>({
-                      id: "arcos",
-                      data: e.arcos,
-                      pickable: true,
-                      capRounded: true,
-                      jointRounded: true,
-                      billboard: true,
-                      widthUnits: "pixels",
-                      getPath: (a) => a.camino.slice(0, Math.max(2, Math.round(a.camino.length * crecer))),
-                      getColor: (a) => [...a.color, a.alfa] as [number, number, number, number],
-                      getWidth: (a) => a.ancho,
-                      onClick: (info: PickingInfo<Arco>) => {
-                        if (info.object) callbacks.current.onSeleccionarPar(info.object.id);
-                      },
-                      updateTriggers: { getPath: crecer },
-                    }),
-                  ];
+          // Las tuberías se tienden desde la fuente: cada una crece a lo largo de su trazado.
+          const tendidas = e.tuberias.map((t) => {
+            if (crecer >= 1) return t.camino;
+            const objetivo = crecer * t.largos[t.largos.length - 1]!;
+            const parcial = t.camino.filter((_, i) => t.largos[i]! <= objetivo);
+            return [...parcial, enTuberia(t, crecer)];
+          });
+          fijas = [
+            new PathLayer<Tuberia>({
+              id: "tuberias-funda",
+              parameters: SOBRE_EL_SUELO,
+              data: e.tuberias,
+              widthUnits: "pixels",
+              jointRounded: true,
+              capRounded: true,
+              getPath: (t) => tendidas[e.tuberias.indexOf(t)]!,
+              getColor: [8, 8, 10, 230],
+              getWidth: (t) => t.ancho + 4,
+              updateTriggers: { getPath: crecer },
+            }),
+            new PathLayer<Tuberia>({
+              id: "tuberias",
+              parameters: SOBRE_EL_SUELO,
+              data: e.tuberias,
+              pickable: true,
+              widthUnits: "pixels",
+              jointRounded: true,
+              capRounded: true,
+              getPath: (t) => tendidas[e.tuberias.indexOf(t)]!,
+              getColor: (t) => [...t.color, t.alfa] as [number, number, number, number],
+              getWidth: (t) => t.ancho,
+              onClick: (info: PickingInfo<Tuberia>) => {
+                if (info.object) callbacks.current.onSeleccionarPar(info.object.id);
+              },
+              updateTriggers: { getPath: crecer },
+            }),
+          ];
         }
         const s = ahora / 1000;
         const animadas: Layer[] = [];
-        if (nivel === 3 && !e.calor) {
+        if (e.pulsos) {
+          // Emisión térmica: anillos que se expanden desde cada fuente.
+          const ondas = FUENTES.flatMap((f) => [0, 0.5].map((desfase) => ({ f, k: (s * 0.45 + desfase + hash01(f.id)) % 1 })));
           animadas.push(
-            new ScatterplotLayer<Nodo>({
-              id: "halos",
+            new ScatterplotLayer<(typeof ondas)[number]>({
+              id: "emision",
               parameters: SOBRE_EL_SUELO,
-              data: e.nodos.filter((n) => !n.tenue),
-              getPosition: (n) => [n.lng, n.lat, 0],
-              getRadius: (n) => 22 + n.potencia * 2.2,
-              radiusScale: 1 + 0.18 * Math.sin(ahora / 450),
-              getFillColor: (n) => [...n.color, 45] as [number, number, number, number],
-              getLineColor: (n) => [...n.color, 200] as [number, number, number, number],
+              data: ondas,
+              getPosition: (x) => [x.f.lng, x.f.lat, 0],
+              getRadius: (x) => 10 + x.k * (25 + x.f.potencia * 3.5),
               stroked: true,
-              lineWidthMinPixels: 1,
+              filled: false,
+              lineWidthMinPixels: 1.5,
+              getLineColor: (x) => [...rgbTemperatura(x.f.tMax), Math.round(230 * (1 - x.k))] as [number, number, number, number],
+              updateTriggers: { getRadius: s, getLineColor: s },
             }),
           );
         }
-        if (nivel === 3 && e.plumas) {
-          animadas.push(
-            new ScatterplotLayer<(typeof PLUMAS)[number]>({
-              id: "plumas",
-              data: PLUMAS,
-              billboard: true,
-              getPosition: (x) => {
-                const k = (s * 0.2 + x.fase) % 1;
-                return [x.lng0 + (x.lng1 - x.lng0) * k, x.lat0 + (x.lat1 - x.lat0) * k, x.base + k * x.alto];
-              },
-              getRadius: (x) => 5 + ((s * 0.2 + x.fase) % 1) * 16,
-              getFillColor: (x) => [...x.color, Math.round(230 * (1 - ((s * 0.2 + x.fase) % 1)))] as [number, number, number, number],
-              radiusMinPixels: 2,
-              updateTriggers: { getPosition: s, getRadius: s, getFillColor: s },
-            }),
-          );
-        }
-        const flujos = nivel === 3 ? e.arcos.filter((a) => a.flujo) : [];
-        if (flujos.length) {
-          const particulas = flujos.flatMap((a) =>
-            Array.from({ length: 22 }, (_, k) => {
-              const t = (s * 0.32 + k / 22) % 1;
-              const c = [0, 1, 2].map((i) => Math.round(a.desde[i]! + (a.hasta[i]! - a.desde[i]!) * t)) as [number, number, number];
-              return { p: enCamino(a.camino, t), c, k };
+        const conFlujo = crecerFijo >= 1 ? e.tuberias.filter((t) => t.flujo) : [];
+        if (conFlujo.length) {
+          const particulas = conFlujo.flatMap((t) =>
+            Array.from({ length: 18 }, (_, k) => {
+              const f = (s * 0.18 + k / 18) % 1;
+              const c = [0, 1, 2].map((i) => Math.round(t.desde[i]! + (FRIO[i]! - t.desde[i]!) * f)) as [number, number, number];
+              return { p: enTuberia(t, f), c };
             }),
           );
           animadas.push(
             new ScatterplotLayer<(typeof particulas)[number]>({
               id: "flujo",
+              parameters: SOBRE_EL_SUELO,
               data: particulas,
-              billboard: true,
               getPosition: (x) => x.p,
-              getRadius: (x) => 2.6 + (x.k % 3),
-              radiusMinPixels: 2.5,
-              getFillColor: (x) => [...x.c, 240] as [number, number, number, number],
+              getRadius: 3,
+              radiusUnits: "pixels",
+              getFillColor: (x) => [...x.c, 255] as [number, number, number, number],
+              getLineColor: [10, 10, 12, 255],
+              stroked: true,
+              lineWidthMinPixels: 1,
             }),
           );
         }
-        if (nivel === 3 && e.sensores.length) {
-          const pulso = s % 2;
+        if (e.sensores.length) {
+          const pulso = s % 1.6;
           animadas.push(
-            new ScatterplotLayer<Punto3D>({
+            new ScatterplotLayer<[number, number]>({
               id: "sensores",
               parameters: SOBRE_EL_SUELO,
               data: e.sensores,
-              getPosition: (x) => x,
+              getPosition: (x) => [x[0], x[1], 0],
               getRadius: 1,
-              radiusScale: 18 + pulso * 55,
+              radiusScale: 8 + pulso * 26,
               stroked: true,
               filled: false,
               getLineColor: [...VERDE, 230] as [number, number, number, number],
-              opacity: 1 - pulso / 2,
+              opacity: 1 - pulso / 1.8,
               lineWidthMinPixels: 2,
             }),
           );
         }
         overlay.current?.setProps({ layers: [...fijas, ...animadas] });
-        if (orb && f === "LISTA" && mapa.current && !mapa.current.isMoving()) mapa.current.setBearing(mapa.current.getBearing() + 0.035);
         if (document.visibilityState === "visible") cuadro = requestAnimationFrame(pintar!);
       };
       cuadro = requestAnimationFrame(pintar);
@@ -567,142 +490,43 @@ function MapaTermicoBase(props: Props) {
     };
   }, [token]);
 
-  // Precarga tapada por la pantalla de carga: planta, un zoom más cerca, planeta y ensayo del vuelo.
+  // Al terminar la intro se habilita la interacción.
   useEffect(() => {
     const m = mapa.current;
-    if (!listo || !m || fase !== "CARGA") return;
-    let cancelado = false;
-    (async () => {
-      const c = { ...camaraDe(0, pantalla.current.oportunidad, pantalla.current.ajusteZoom), padding: pantalla.current.margen };
-      m.jumpTo(c);
-      await esperarIdle(m, 3000);
-      if (cancelado) return;
-      m.jumpTo({ ...c, zoom: c.zoom + 1.2 });
-      await esperarIdle(m, 1500);
-      if (cancelado) return;
-      m.jumpTo(CAMARA_PLANETA);
-      await esperarIdle(m, 1500);
-      if (cancelado) return;
-      const restante = montaje.current + duracionCarga.current - performance.now() - 1200;
-      await new Promise<void>((r) => {
-        m.once("moveend", () => r());
-        m.flyTo({ ...c, duration: Math.max(3000, restante), curve: 1.42, easing: suave, essential: true });
-      });
-    })();
-    return () => {
-      cancelado = true;
-    };
+    if (!listo || !m || fase !== "LISTA") return;
+    for (const h of MANEJADORES) m[h].enable();
   }, [listo, fase]);
 
-  // Vuelo desde el planeta hasta el paso 1. Un clic, la rueda o una tecla saltan al final.
-  useEffect(() => {
-    const m = mapa.current;
-    const cont = contenedor.current;
-    if (!listo || !m || !cont || fase !== "VUELO") return;
-    const final = { ...camaraDe(0, pantalla.current.oportunidad, pantalla.current.ajusteZoom), padding: pantalla.current.margen };
-    let terminado = false;
-    const quitar = () => {
-      m.off("moveend", terminar);
-      cont.removeEventListener("pointerdown", saltar, true);
-      cont.removeEventListener("wheel", saltar, true);
-      window.removeEventListener("keydown", saltar);
-    };
-    function terminar() {
-      if (terminado) return;
-      terminado = true;
-      quitar();
-      m!.setMaxBounds(LIMITES_NAVEGACION);
-      interaccion(m!, true);
-      callbacks.current.onFinEntrada();
-    }
-    function saltar() {
-      m!.off("moveend", terminar);
-      m!.stop();
-      m!.jumpTo(final);
-      terminar();
-    }
-    if (movimientoReducido) {
-      m.jumpTo(final);
-      terminar();
-      return quitar;
-    }
-    m.stop();
-    m.jumpTo(CAMARA_PLANETA);
-    m.flyTo({ ...final, duration: DURACION_VUELO_MS, curve: 1.42, easing: suave, essential: true });
-    m.once("moveend", terminar);
-    cont.addEventListener("pointerdown", saltar, true);
-    cont.addEventListener("wheel", saltar, true);
-    window.addEventListener("keydown", saltar);
-    return quitar;
-  }, [listo, fase, movimientoReducido]);
-
-  // Etiquetas de los sitios (vista de país), una vez.
-  useEffect(() => {
-    const m = mapa.current;
-    const Clase = claseMarcador.current;
-    if (!listo || !m || !Clase) return;
-    const lista = SITIOS.map((s) => {
-      const el = document.createElement("div");
-      el.className = `vt-sitio${s.piloto ? " vt-sitio--piloto" : ""}`;
-      const t = document.createElement("strong");
-      t.textContent = s.nombre;
-      const sub = document.createElement("span");
-      sub.textContent = s.sub;
-      el.append(t, sub);
-      return new Clase({ element: el, anchor: "left", offset: [12, 0] }).setLngLat([s.lng, s.lat]).addTo(m);
-    });
-    return () => lista.forEach((mk) => mk.remove());
-  }, [listo]);
-
-  // Etiquetas de fuentes y demandas: una por punto; el paso decide cuáles se ven.
-  useEffect(() => {
-    const m = mapa.current;
-    const Clase = claseMarcador.current;
-    if (!listo || !m || !Clase) return;
-    const todos = [...FUENTES.map((f) => ({ id: f.id, nombre: f.nombre, sub: `${f.tMin}–${f.tMax} °C · ${f.potencia} MW`, fuente: true })), ...DEMANDAS.map((d) => ({ id: d.id, nombre: d.nombre, sub: `${d.tReq} °C · ${d.potencia} MW`, fuente: false }))];
-    for (const n of todos) {
-      if (marcadores.current.has(n.id)) continue;
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = `vt-etiqueta ${n.fuente ? "vt-etiqueta--fuente" : "vt-etiqueta--demanda"}`;
-      const t = document.createElement("strong");
-      const chip = document.createElement("em");
-      chip.textContent = n.id;
-      t.append(chip, document.createTextNode(n.nombre));
-      const sub = document.createElement("span");
-      sub.textContent = n.sub;
-      el.append(t, sub);
-      el.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        callbacks.current.onSeleccionarPunto(n.id);
-      });
-      const p = n.fuente ? FUENTES.find((f) => f.id === n.id)! : DEMANDAS.find((d) => d.id === n.id)!;
-      marcadores.current.set(n.id, new Clase({ element: el, anchor: "bottom", offset: [0, -10] }).setLngLat([p.lng, p.lat]).addTo(m));
-    }
-  }, [listo]);
-
+  // Retículas: cuáles se ven y cuáles están en foco en este paso.
   useEffect(() => {
     for (const [id, mk] of marcadores.current) {
       const el = mk.getElement();
-      el.dataset.visible = escena.etiquetas.has(id) && !escena.calor ? "1" : "0";
-      el.dataset.foco = escena.etiquetas.size <= 2 && escena.etiquetas.has(id) ? "1" : "0";
+      el.dataset.visible = escena.visibles.has(id) ? "1" : "0";
+      el.dataset.foco = escena.foco.has(id) ? "1" : "0";
+      el.dataset.compacta = escena.id === "termico" || escena.id === "cruce" ? "1" : "0";
     }
   }, [escena, listo]);
 
-  // Cámara por paso (solo después de la entrada).
+  // Capas nativas: gris o color real, paleta e intensidad del calor.
+  useEffect(() => {
+    if (!listo || !mapa.current) return;
+    aplicarCapasNativas(mapa.current, termografia, paleta, intensidadPaso);
+  }, [listo, termografia, paleta, intensidadPaso]);
+
+  // Cámara por paso.
   useEffect(() => {
     inicioPaso.current = performance.now();
     const m = mapa.current;
-    if (!listo || !m || vivo.current.fase !== "LISTA") return;
+    if (!listo || !m) return;
     const c = camaraDe(paso, pantalla.current.oportunidad, pantalla.current.ajusteZoom);
-    m.flyTo({ ...c, padding: pantalla.current.margen, duration: 3000, essential: true, curve: 1.3 });
+    m.easeTo({ ...c, padding: pantalla.current.margen, duration: 1800, essential: true });
   }, [paso, listo, oportunidad.fuente.id, oportunidad.demanda.id]);
 
-  // Al cambiar el espacio libre (paneles o tarjeta del celular), se recentra sin interrumpir un vuelo.
+  // Al cambiar el espacio libre se recentra sin interrumpir un movimiento en curso.
   useEffect(() => {
     const m = mapa.current;
-    if (!listo || !m || vivo.current.fase !== "LISTA") return;
-    const aplicar = () => m.easeTo({ padding: pantalla.current.margen, duration: 600 });
+    if (!listo || !m) return;
+    const aplicar = () => m.easeTo({ padding: pantalla.current.margen, duration: 500 });
     if (m.isMoving()) {
       m.once("moveend", aplicar);
       return () => {
@@ -712,27 +536,13 @@ function MapaTermicoBase(props: Props) {
     aplicar();
   }, [margen, listo]);
 
-  // Mapa térmico: visibilidad, paleta e intensidad de la capa nativa.
-  useEffect(() => {
-    if (!listo || !mapa.current) return;
-    asegurarCapaCalor(mapa.current, escena.calor, paleta, intensidad);
-  }, [listo, escena.calor, paleta, intensidad]);
-
-  // Cambio de estilo (el inicial ya se cargó al crear el mapa).
-  useEffect(() => {
-    if (!listo || !mapa.current || sateliteAplicado.current === satelite) return;
-    sateliteAplicado.current = satelite;
-    const e = estiloMapa(satelite);
-    mapa.current.setStyle(e.style, { config: e.config } as never);
-  }, [satelite, listo]);
-
   return (
-    <div ref={envoltorio} className="vt-mapa absolute inset-0" data-nivel="3">
+    <div className="vt-mapa absolute inset-0">
       <div ref={contenedor} className="h-full w-full" />
-      {error ? <div className="absolute inset-x-0 top-24 mx-auto w-fit rounded-md bg-[#EF4444] px-4 py-2 text-sm text-white">{error}</div> : null}
+      {error ? <div className="absolute inset-x-0 top-24 mx-auto w-fit bg-[#FF5A1F] px-4 py-2 text-sm text-black">{error}</div> : null}
     </div>
   );
 }
 
-/** Memo: los contadores y el progreso de la vitrina no re-renderizan el mapa. */
+/** Memo: los contadores y el progreso no re-renderizan el mapa. */
 export const MapaTermico = memo(MapaTermicoBase);

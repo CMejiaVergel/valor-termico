@@ -4,22 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ETAPAS, OPORTUNIDAD_INICIAL, PASOS, SUPUESTOS_INICIALES, type Supuestos } from "@/dominio/escenario";
 import { CALOR_RESIDUAL_MW, ajusteTecnologia, cruzarTodo, demanda, ejesMatriz, evaluar, fuente, mejorTecnologia, modelo, portafolio, tecnologia, type Oportunidad } from "@/dominio/motor";
 import { MapaTermico, type FaseEntrada, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
-import { PantallaCarga } from "@/componentes/PantallaCarga";
+import { IntroTermica } from "@/componentes/IntroTermica";
 import { PanelPaso } from "@/componentes/paneles";
 import { BarraMovil, ControlesMovil, TarjetaPaso } from "@/componentes/Movil";
-import { Kpi, KpiMini, num } from "@/componentes/ui";
+import { ChipOrigen, Contador, KpiMini, num } from "@/componentes/ui";
 
-// Vitrina guiada de Calor Rescatado. Estructura heredada de la Vitrina de
-// ConfluencIA Hídrica: pantalla de carga con precarga real, vuelo desde el
-// planeta, recorrido por pasos con narración, indicadores que se encienden a
-// medida que avanza la historia, panel contextual interactivo, presentación
-// automática y experiencia móvil tipo app. Todo corre en el navegador.
+// Vitrina de Calor Rescatado con lenguaje de cámara termográfica. El mapa ocupa
+// toda la pantalla y es el protagonista; alrededor, un HUD liviano:
+//   · barra superior delgada (marca, ubicación, controles),
+//   · visor del paso arriba a la izquierda y lecturas debajo,
+//   · escala de temperatura y ficha técnica plegable a la derecha,
+//   · línea de tiempo de 10 pasos agrupados por etapa abajo.
+// La mecánica (pasos, motor, presentación automática, celular) se conserva.
 
 const SEG_POR_PASO = 14;
-const CARGA_MS = 14000;
-const CARGA_VISTA_MS = 9000;
-const PAUSA_COMPLETA_MS = 400;
-const CLAVE_CARGA_VISTA = "calor-rescatado-carga-vista";
 const indice = (id: string) => PASOS.findIndex((p) => p.id === id);
 const I = { inventario: indice("inventario"), cruce: indice("cruce"), tecnologia: indice("tecnologia"), evaluacion: indice("evaluacion"), portafolio: indice("portafolio") };
 
@@ -34,23 +32,21 @@ export function Vitrina() {
   const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN?.trim() ?? "";
   const [paso, setPaso] = useState(0);
   const [auto, setAuto] = useState(false);
-  const [satelite, setSatelite] = useState(true);
+  const [termografia, setTermografia] = useState(true);
   const [fase, setFase] = useState<FaseEntrada>("CARGA");
-  const [cargaVisible, setCargaVisible] = useState(true);
-  const [saliendo, setSaliendo] = useState(false);
-  const [reducido, setReducido] = useState(false);
-  const [duracionCarga, setDuracionCarga] = useState(CARGA_MS);
-  const inicioCarga = useRef(0);
+  const [mapaListo, setMapaListo] = useState(false);
   const lista = fase === "LISTA";
 
   const [eleccion, setEleccion] = useState<Eleccion>({ ...OPORTUNIDAD_INICIAL });
   const [supuestos, setSupuestos] = useState<Supuestos>(SUPUESTOS_INICIALES);
   const [parSel, setParSel] = useState<string | null>(`${OPORTUNIDAD_INICIAL.fuente}-${OPORTUNIDAD_INICIAL.demanda}`);
   const [puntoSel, setPuntoSel] = useState<string | null>(null);
-  const [paleta, setPaleta] = useState<PaletaCalor>("clasica");
-  const [intensidad, setIntensidad] = useState(1.3);
+  const [paleta, setPaleta] = useState<PaletaCalor>("ironbow");
+  const [intensidad, setIntensidad] = useState(1.1);
+  const [fichaAbierta, setFichaAbierta] = useState(true);
+  // En pantallas medianas la ficha arranca plegada para dejarle espacio al mapa.
+  const fichaInicial = useRef(false);
 
-  // Pantalla: celular (< 768 px) o escritorio; el ancho decide el espacio libre del mapa.
   const [ancho, setAncho] = useState(1440);
   const [alto, setAlto] = useState(900);
   const movil = ancho < 768;
@@ -62,6 +58,10 @@ export function Vitrina() {
       setAlto(window.innerHeight);
     };
     actualizar();
+    if (!fichaInicial.current) {
+      fichaInicial.current = true;
+      if (window.innerWidth < 1100) setFichaAbierta(false);
+    }
     window.addEventListener("resize", actualizar);
     return () => window.removeEventListener("resize", actualizar);
   }, []);
@@ -86,14 +86,15 @@ export function Vitrina() {
   }, []);
 
   const ir = useCallback((i: number) => setPaso(Math.max(0, Math.min(PASOS.length - 1, i))), []);
-  const idPaso = PASOS[paso]!.id;
+  const actual = PASOS[paso]!;
 
   const alPar = useCallback(
     (id: string) => {
-      if (idPaso === "portafolio" || idPaso === "monitoreo" || idPaso === "impacto") elegirPar(id);
+      if (actual.id === "portafolio" || actual.id === "monitoreo" || actual.id === "impacto") elegirPar(id);
       else setParSel(id);
+      setFichaAbierta(true);
     },
-    [idPaso, elegirPar],
+    [actual.id, elegirPar],
   );
   const alEvaluarPar = useCallback(
     (id: string) => {
@@ -104,12 +105,14 @@ export function Vitrina() {
   const alPunto = useCallback((id: string) => {
     setPuntoSel(id);
     setTarjeta(true);
+    setFichaAbierta(true);
   }, []);
   const alTecnologia = useCallback((id: string) => {
     setEleccion((e) => (ajusteTecnologia(tecnologia(id), fuente(e.fuente), demanda(e.demanda)) ? { ...e, tecnologia: id } : e));
   }, []);
   const alModelo = useCallback((id: string) => setEleccion((e) => ({ ...e, modelo: id })), []);
-  const alFinEntrada = useCallback(() => setFase("LISTA"), []);
+  const alPrecargado = useCallback(() => setMapaListo(true), []);
+  const alTerminarIntro = useCallback(() => setFase("LISTA"), []);
   const reiniciar = useCallback(() => {
     setEleccion({ ...OPORTUNIDAD_INICIAL });
     setSupuestos(SUPUESTOS_INICIALES);
@@ -117,13 +120,12 @@ export function Vitrina() {
     setPaso(0);
   }, []);
 
-  // Cada paso nuevo abre su tarjeta en el celular (y cierra el menú).
   useEffect(() => {
     setTarjeta(true);
     setMenu(false);
   }, [paso]);
 
-  // En el celular la presentación automática arranca sola una vez al llegar.
+  // Celular: presentación automática al llegar (una vez) y tarjeta que deja ver el mapa.
   const autoMovilIniciado = useRef(false);
   useEffect(() => {
     if (!movil || !lista || autoMovilIniciado.current) return;
@@ -136,45 +138,12 @@ export function Vitrina() {
     return () => clearTimeout(id);
   }, [movil, auto, tarjeta, lista, paso]);
 
-  // Carga → fundido → vuelo.
-  const terminarCarga = useCallback(() => {
-    setSaliendo(true);
-    setFase((f) => (f === "CARGA" ? "VUELO" : f));
-    try {
-      sessionStorage.setItem(CLAVE_CARGA_VISTA, "1");
-    } catch {
-      // Sin almacenamiento: la próxima vez la carga dura lo normal.
-    }
-  }, []);
-  useEffect(() => {
-    inicioCarga.current = performance.now();
-    setReducido(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    try {
-      if (sessionStorage.getItem(CLAVE_CARGA_VISTA)) setDuracionCarga(CARGA_VISTA_MS);
-    } catch {
-      // Sin almacenamiento: duración normal.
-    }
-  }, []);
-  useEffect(() => {
-    if (saliendo) return;
-    const falta = Math.max(0, duracionCarga - (performance.now() - inicioCarga.current)) + PAUSA_COMPLETA_MS;
-    const id = setTimeout(terminarCarga, falta);
-    return () => clearTimeout(id);
-  }, [duracionCarga, saliendo, terminarCarga]);
-  useEffect(() => {
-    if (!saliendo) return;
-    const id = setTimeout(() => setCargaVisible(false), reducido ? 0 : 750);
-    return () => clearTimeout(id);
-  }, [saliendo, reducido]);
-
-  // Presentación automática (la barra de progreso es CSS).
   useEffect(() => {
     if (!auto || !lista) return;
     const id = setTimeout(() => setPaso((x) => (x + 1) % PASOS.length), SEG_POR_PASO * 1000);
     return () => clearTimeout(id);
   }, [auto, paso, lista]);
 
-  // Teclado: ← → y espacio.
   useEffect(() => {
     if (!lista) return;
     const f = (e: KeyboardEvent) => {
@@ -190,29 +159,26 @@ export function Vitrina() {
     return () => window.removeEventListener("keydown", f);
   }, [paso, ir, lista]);
 
-  // Indicadores: se encienden a medida que avanza la historia.
+  // Lecturas: se encienden a medida que avanza la historia.
   const compatibles = pares.filter((p) => p.estado === "COMPATIBLE").length;
   const viables = pares.filter((p) => p.estado !== "DESCARTADO").length;
   const totalCartera = useMemo(() => cartera.reduce((a, o) => ({ usd: a.usd + o.ahorroUSD, co2: a.co2 + o.co2t, mw: a.mw + o.qUtil }), { usd: 0, co2: 0, mw: 0 }), [cartera]);
   const enCartera = paso >= I.portafolio;
-  const indicadores = [
-    { etiqueta: "Calor residual identificado", valor: CALOR_RESIDUAL_MW, unidad: "MWt", origen: "DECLARADO" as const, activo: true },
-    { etiqueta: "Fuentes y demandas", valor: 15, unidad: "puntos", origen: "DECLARADO" as const, activo: paso >= I.inventario },
+  const lecturas = [
+    { etiqueta: "Calor residual", valor: CALOR_RESIDUAL_MW, unidad: "MWt", origen: "DECLARADO" as const, activo: true },
+    { etiqueta: "Puntos inventariados", valor: 15, unidad: "F+D", origen: "DECLARADO" as const, activo: paso >= I.inventario },
     { etiqueta: "Pares evaluados", valor: pares.length, origen: "ESTIMADO" as const, activo: paso >= I.cruce },
-    { etiqueta: "Compatibles", valor: compatibles, unidad: `+ ${viables - compatibles} cond.`, origen: "ESTIMADO" as const, activo: paso >= I.cruce },
-    { etiqueta: enCartera ? "Calor útil del portafolio" : "Calor útil del piloto", valor: enCartera ? totalCartera.mw : op.qUtil, unidad: "MW", decimales: 1, origen: "ESTIMADO" as const, activo: paso >= I.tecnologia },
-    { etiqueta: enCartera ? "Ahorro anual del portafolio" : "Ahorro anual del piloto", valor: (enCartera ? totalCartera.usd : op.ahorroUSD) / 1e6, formato: (n: number) => `USD ${num(n, 2)} M`, origen: "ESTIMADO" as const, activo: paso >= I.evaluacion, resaltar: paso >= I.evaluacion },
-    { etiqueta: enCartera ? "CO₂ evitado del portafolio" : "CO₂ evitado del piloto", valor: enCartera ? totalCartera.co2 : op.co2t, unidad: "t/año", origen: "ESTIMADO" as const, activo: paso >= I.evaluacion },
+    { etiqueta: "Viables", valor: viables, unidad: `${compatibles} compat.`, origen: "ESTIMADO" as const, activo: paso >= I.cruce },
+    { etiqueta: enCartera ? "Calor útil · portafolio" : "Calor útil · piloto", valor: enCartera ? totalCartera.mw : op.qUtil, unidad: "MW", decimales: 1, origen: "ESTIMADO" as const, activo: paso >= I.tecnologia },
+    { etiqueta: enCartera ? "Ahorro/año · portafolio" : "Ahorro/año · piloto", valor: (enCartera ? totalCartera.usd : op.ahorroUSD) / 1e6, formato: (n: number) => `USD ${num(n, 2)} M`, origen: "ESTIMADO" as const, activo: paso >= I.evaluacion, resaltar: paso >= I.evaluacion },
+    { etiqueta: enCartera ? "CO₂ evitado · portafolio" : "CO₂ evitado · piloto", valor: enCartera ? totalCartera.co2 : op.co2t, unidad: "t/año", origen: "ESTIMADO" as const, activo: paso >= I.evaluacion },
   ];
 
-  const actual = PASOS[paso]!;
-  const conNav = ancho >= 1024;
-  // Espacio libre del mapa: entre la cabecera, los indicadores, el recorrido, la narración y el panel.
   const margen = useMemo(
-    () => (movil ? { top: 112, bottom: tarjeta && lista ? Math.round(alto * 0.55) : 110, left: 0, right: 0 } : { top: 150, bottom: 200, left: conNav ? 300 : 0, right: 360 }),
-    [movil, tarjeta, lista, alto, conNav],
+    () => (movil ? { top: 104, bottom: tarjeta && lista ? Math.round(alto * 0.55) : 104, left: 0, right: 0 } : { top: 56, bottom: 118, left: ancho >= 1280 ? 372 : 300, right: fichaAbierta ? (ancho >= 1280 ? 404 : 336) : 64 }),
+    [movil, tarjeta, lista, alto, ancho, fichaAbierta],
   );
-  const ajusteZoom = movil ? (paso === 0 ? -0.6 : -0.5) : 0;
+  const ajusteZoom = movil ? -0.9 : ancho < 1100 ? -0.6 : ancho < 1400 ? -0.25 : 0;
 
   const panel = (
     <PanelPaso
@@ -238,7 +204,7 @@ export function Vitrina() {
 
   if (!token.startsWith("pk.")) {
     return (
-      <div className="flex h-[100dvh] items-center justify-center bg-[#051417] p-8 text-center text-[#E0F0F2]">
+      <div className="flex h-[100dvh] items-center justify-center bg-[#0A0A0B] p-8 text-center text-[#EDEDED]">
         <p className="max-w-md text-sm">
           Falta el token público de Mapbox. Cree <code>.env.local</code> con <code>NEXT_PUBLIC_MAPBOX_TOKEN=pk.…</code> y reinicie.
         </p>
@@ -246,13 +212,14 @@ export function Vitrina() {
     );
   }
 
+  const etapaActual = ETAPAS.indexOf(actual.etapa);
+
   return (
-    <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#051417] text-[#E0F0F2]">
+    <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#0A0A0B] text-[#EDEDED]">
       <MapaTermico
         token={token}
         paso={paso}
-        satelite={satelite}
-        orbitar={auto || paso === 0}
+        termografia={termografia}
         pares={pares}
         oportunidad={op}
         cartera={cartera}
@@ -260,24 +227,22 @@ export function Vitrina() {
         paleta={paleta}
         intensidad={intensidad}
         fase={fase}
-        movimientoReducido={reducido}
-        duracionCargaMs={duracionCarga}
         margen={margen}
         ajusteZoom={ajusteZoom}
-        onFinEntrada={alFinEntrada}
+        onPrecargado={alPrecargado}
         onSeleccionarPar={alPar}
         onSeleccionarPunto={alPunto}
       />
 
-      {/* Celular */}
+      {/* ── Celular ── */}
       <BarraMovil
-        chips={indicadores.map((k) => (
+        chips={lecturas.map((k) => (
           <KpiMini key={k.etiqueta} {...k} />
         ))}
         menuAbierto={menu}
         onMenu={setMenu}
-        satelite={satelite}
-        onSatelite={() => setSatelite((s) => !s)}
+        satelite={!termografia}
+        onSatelite={() => setTermografia((t) => !t)}
         auto={auto}
         onAuto={() => setAuto((a) => !a)}
         lista={lista}
@@ -287,103 +252,140 @@ export function Vitrina() {
       ) : null}
       {lista && !tarjeta ? <ControlesMovil paso={paso} total={PASOS.length} titulo={actual.titulo} onInfo={() => setTarjeta(true)} onAnterior={() => ir(paso - 1)} onSiguiente={() => (paso === PASOS.length - 1 ? ir(0) : ir(paso + 1))} /> : null}
 
-      {/* Cabecera */}
-      <header className="pointer-events-none absolute inset-x-0 top-0 z-10 hidden items-start justify-between gap-4 bg-gradient-to-b from-[#051417] via-[#051417]/75 to-transparent px-5 pb-10 pt-4 md:flex">
-        <div className="pointer-events-auto flex items-center gap-4">
-          <p className="font-[family-name:var(--font-titulos)] text-2xl font-bold leading-none text-white">
-            <span className="vt-degradado">Calor</span> Rescatado
-          </p>
-          <div className="border-l border-white/15 pl-4">
-            <p className="text-sm font-semibold text-white">Mapa de Oportunidades Térmicas · Refinería de Cartagena</p>
-            <p className="text-[11px] text-[#FACC15]">Prototipo de demostración: cifras ilustrativas</p>
-          </div>
+      {/* ── Barra superior (HUD) ── */}
+      <header className="hud absolute inset-x-0 top-0 z-10 hidden h-11 items-center justify-between border-b border-white/10 bg-[#0A0A0B]/[0.92] px-4 text-[10px] md:flex">
+        <div className="flex items-center gap-4">
+          <span className="titular text-sm font-extrabold normal-case tracking-tight text-white">
+            CALOR <span className="vt-degradado">RESCATADO</span>
+          </span>
+          <span className="text-[#5E5E66]">//</span>
+          <span className="text-[#9B9BA1]">Mapa de oportunidades térmicas</span>
         </div>
-        <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2 text-xs">
-          <button type="button" onClick={() => setSatelite((s) => !s)} className="rounded-md border border-white/15 bg-[#051417]/90 px-3 py-1.5 text-[#8CA8AD] hover:text-white">
-            {satelite ? "Mapa nocturno" : "Satélite"}
+        <div className="hidden items-center gap-4 text-[#9B9BA1] lg:flex">
+          <span>
+            <span className="vt-parpadeo mr-1.5 inline-block h-1.5 w-1.5 bg-[#FF3B30] align-middle" />
+            Refinería de Cartagena
+          </span>
+          <span className="cifra-tabular normal-case tracking-normal">10,3135° N · 75,4915° O</span>
+          <span className="text-[#F5C518]">Datos ilustrativos</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button type="button" onClick={() => setTermografia((t) => !t)} className="border border-white/15 px-2.5 py-1 text-[#9B9BA1] hover:text-white">
+            {termografia ? "◐ Color real" : "◑ Termografía"}
           </button>
-          <button type="button" disabled={!lista} onClick={reiniciar} className="rounded-md border border-white/15 bg-[#051417]/90 px-3 py-1.5 text-[#8CA8AD] hover:text-white disabled:opacity-50">
+          <button type="button" disabled={!lista} onClick={reiniciar} className="border border-white/15 px-2.5 py-1 text-[#9B9BA1] hover:text-white disabled:opacity-40">
             ↺ Reiniciar
           </button>
-          <button type="button" disabled={!lista} onClick={() => setAuto((a) => !a)} className="rounded-md bg-gradient-to-r from-[#00AEC0] via-[#CFE84E] to-[#FF8A3D] px-3 py-1.5 font-semibold text-[#051417] disabled:opacity-50">
-            {auto ? "❚❚ Pausar" : "▶ Presentación automática"}
+          <button type="button" disabled={!lista} onClick={() => setAuto((a) => !a)} className="bg-[#FFB000] px-3 py-1 font-bold text-[#0A0A0B] disabled:opacity-40">
+            {auto ? "❚❚ Pausar" : "▶ Presentación"}
           </button>
         </div>
       </header>
 
-      {/* Indicadores */}
-      <section className="absolute inset-x-5 top-[4.5rem] z-10 hidden gap-2 md:grid md:grid-cols-4 xl:grid-cols-7">
-        {indicadores.map((k) => (
-          <Kpi key={k.etiqueta} {...k} />
-        ))}
-      </section>
-
-      {/* Recorrido por etapas */}
-      <nav className="absolute bottom-5 left-5 top-[11.5rem] z-10 hidden w-[17.5rem] flex-col gap-0.5 overflow-y-auto rounded-xl border border-white/10 bg-[#051417]/[0.93] p-3 lg:flex" aria-label="Recorrido">
-        <p className="px-1 pb-1 text-[10px] uppercase tracking-[0.2em] text-[#8CA8AD]">Recorrido · ← → para avanzar</p>
-        {ETAPAS.map((etapa) => (
-          <div key={etapa} className="flex flex-col gap-0.5">
-            <p className="mt-1.5 px-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#00AEC0]">{etapa}</p>
-            {PASOS.map((p, i) =>
-              p.etapa !== etapa ? null : (
-                <button key={p.id} type="button" disabled={!lista} onClick={() => ir(i)} className={`relative overflow-hidden rounded-lg px-3 py-1.5 text-left transition disabled:cursor-default ${i === paso ? "bg-white/10" : "hover:bg-white/5"}`}>
-                  <span className="flex items-baseline gap-2">
-                    <span className={`cifra-tabular text-xs ${i <= paso ? "text-[#CFE84E]" : "text-[#5A7A80]"}`}>{String(i + 1).padStart(2, "0")}</span>
-                    <span className={`text-sm font-semibold ${i === paso ? "text-white" : "text-[#8CA8AD]"}`}>{p.titulo}</span>
-                  </span>
-                  {i === paso ? <span className="mt-0.5 block pl-6 text-[11px] text-[#8CA8AD]">{p.bajada}</span> : null}
-                  {i === paso && auto && lista ? <span key={paso} className="vt-progreso-paso absolute bottom-0 left-0 h-0.5 bg-[#CFE84E]" style={{ animationDuration: `${SEG_POR_PASO}s` }} /> : null}
-                </button>
-              ),
-            )}
-          </div>
-        ))}
-      </nav>
-
-      {/* Narración */}
-      <section className="absolute bottom-5 left-5 right-[23.5rem] z-10 hidden rounded-xl border border-white/10 bg-[#051417]/[0.94] p-4 md:block lg:left-[19.75rem]">
-        <div className="flex items-center gap-2">
-          {ETAPAS.map((e) => (
-            <span key={e} className={`h-1 flex-1 rounded-full ${ETAPAS.indexOf(e) < ETAPAS.indexOf(actual.etapa) ? "bg-[#00AEC0]" : e === actual.etapa ? "bg-[#CFE84E]" : "bg-white/15"}`} />
-          ))}
-        </div>
-        <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-[#00AEC0]">
-          {actual.etapa} · paso {paso + 1} de {PASOS.length} · {actual.bajada}
-        </p>
-        <h2 className="mt-1 text-2xl font-bold leading-tight text-white">{actual.titulo}</h2>
-        <p className="mt-1 max-w-3xl text-sm text-white/90">{actual.texto}</p>
-        <p className="mt-2 max-w-3xl rounded-md border-l-2 border-[#CFE84E] bg-white/5 px-2 py-1 text-xs text-[#C9DADD]">
-          <span className="font-semibold text-white">Por qué importa: </span>
-          {actual.clave}
-        </p>
-        <div className="mt-3 flex items-center justify-between">
-          <button type="button" onClick={() => ir(paso - 1)} disabled={!lista || paso === 0} className="rounded-md border border-white/15 px-3 py-1 text-xs text-[#8CA8AD] hover:text-white disabled:opacity-30">
-            ← Anterior
-          </button>
-          <div className="flex gap-1">
-            {PASOS.map((p, i) => (
-              <button key={p.id} type="button" aria-label={`Ir al paso ${i + 1}`} disabled={!lista} onClick={() => ir(i)} className={`h-1.5 rounded-full transition-all ${i === paso ? "w-6 bg-[#CFE84E]" : "w-1.5 bg-white/25"}`} />
+      {/* ── Visor del paso + lecturas (izquierda) ── */}
+      <div className="absolute left-4 top-[3.75rem] z-10 hidden w-[18rem] flex-col gap-3 md:flex xl:w-[21rem]" style={{ maxHeight: "calc(100% - 3.75rem - 8rem)" }}>
+        <section key={paso} className="visor vt-tarjeta-movil p-4">
+          <p className="hud flex items-center justify-between text-[10px] text-[#FFB000]">
+            <span>
+              {String(paso + 1).padStart(2, "0")}/{PASOS.length} · {actual.etapa}
+            </span>
+            <span className="text-[#5E5E66]">{actual.bajada}</span>
+          </p>
+          <h2 className="mt-2 text-xl xl:text-[1.6rem] font-extrabold uppercase leading-[1.05] text-white">{actual.titulo}</h2>
+          <p className="mt-2 text-[13px] leading-snug text-[#D0D0D4]">{actual.texto}</p>
+          <p className="mt-3 border-l-2 border-[#FF5A1F] pl-2 text-xs leading-snug text-[#C8C8CC]">
+            <span className="hud mr-1 text-[9px] text-[#FF5A1F]">Por qué importa</span>
+            {actual.clave}
+          </p>
+        </section>
+        <section className="visor hidden min-h-0 flex-col overflow-y-auto px-3 py-2 lg:flex" aria-label="Lecturas">
+          <p className="hud mb-1 text-[9px] text-[#5E5E66]">Lecturas</p>
+          <ul className="flex flex-col">
+            {lecturas.map((k) => (
+              <li key={k.etiqueta} className={`flex items-baseline justify-between gap-2 border-b border-white/5 py-1.5 transition-opacity duration-500 ${k.activo ? "" : "opacity-30"}`}>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-[11px] text-[#9B9BA1]">{k.etiqueta}</span>
+                  {k.activo ? <ChipOrigen origen={k.origen} mini /> : null}
+                </span>
+                <span className={`cifra-tabular shrink-0 text-right text-base font-semibold ${k.resaltar ? "text-[#FFE14D]" : "text-white"}`}>
+                  {k.activo ? <Contador valor={k.valor} decimales={k.decimales} formato={k.formato} /> : "—"}
+                  {k.unidad && k.activo ? <span className="ml-1 text-[10px] font-normal text-[#9B9BA1]">{k.unidad}</span> : null}
+                </span>
+              </li>
             ))}
+          </ul>
+        </section>
+      </div>
+
+      {/* ── Escala de temperatura (derecha, como en una cámara térmica) ── */}
+      <div className={`absolute top-[3.75rem] z-10 hidden flex-col items-center gap-1 md:flex ${fichaAbierta ? "right-[21.5rem] xl:right-[26rem]" : "right-4"}`} aria-hidden>
+        <span className="cifra-tabular text-[10px] text-white">320°</span>
+        <div className="h-44 w-2.5 border border-white/30" style={{ background: "linear-gradient(0deg, #3c5adc, #8c32b4, #e1376e, #ff6e1e, #ffc32d, #fffad7)" }} />
+        <span className="cifra-tabular text-[10px] text-white">0°C</span>
+      </div>
+
+      {/* ── Ficha técnica plegable (derecha) ── */}
+      <aside className={`visor absolute right-4 top-[3.75rem] z-10 hidden flex-col md:flex ${fichaAbierta ? "bottom-[7.25rem] w-[20rem] xl:w-[24.5rem]" : "w-auto"}`}>
+        <button type="button" onClick={() => setFichaAbierta((a) => !a)} className="hud flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2 text-[10px] text-[#9B9BA1] hover:text-white">
+          <span>
+            Ficha técnica <span className="text-[#FFB000]">· {actual.titulo}</span>
+          </span>
+          <span>{fichaAbierta ? "▸ ocultar" : "◂ ver"}</span>
+        </button>
+        {fichaAbierta ? <div className="min-h-0 flex-1 overflow-y-auto p-3">{panel}</div> : null}
+      </aside>
+
+      {/* ── Línea de tiempo (abajo) ── */}
+      <nav className="absolute inset-x-4 bottom-4 z-10 hidden border border-white/10 bg-[#0A0A0B]/[0.92] px-4 pb-3 pt-2 md:block" aria-label="Recorrido">
+        <div className="flex items-center gap-3">
+          <button type="button" aria-label="Paso anterior" onClick={() => ir(paso - 1)} disabled={!lista || paso === 0} className="hud h-9 w-9 shrink-0 border border-white/15 text-sm text-[#9B9BA1] hover:text-white disabled:opacity-30">
+            ←
+          </button>
+          <div className="relative min-w-0 flex-1">
+            {/* Etapas */}
+            <div className="hud mb-1.5 grid text-[9px]" style={{ gridTemplateColumns: `repeat(${PASOS.length}, minmax(0, 1fr))` }}>
+              {ETAPAS.map((e, i) => {
+                const desde = PASOS.findIndex((p) => p.etapa === e);
+                const cuantos = PASOS.filter((p) => p.etapa === e).length;
+                return (
+                  <span key={e} className={`truncate border-l pl-1.5 ${i === etapaActual ? "border-[#FFB000] text-[#FFB000]" : i < etapaActual ? "border-white/30 text-[#9B9BA1]" : "border-white/15 text-[#5E5E66]"}`} style={{ gridColumn: `${desde + 1} / span ${cuantos}` }}>
+                    {e}
+                  </span>
+                );
+              })}
+            </div>
+            {/* Pista con el avance */}
+            <div className="absolute left-0 right-0 top-[1.85rem] h-px bg-white/15" />
+            <div className="absolute left-0 top-[1.85rem] h-px transition-all duration-700" style={{ width: `${(paso / (PASOS.length - 1)) * 100}%`, background: "var(--ironbow)" }} />
+            <ol className="relative grid" style={{ gridTemplateColumns: `repeat(${PASOS.length}, minmax(0, 1fr))` }}>
+              {PASOS.map((p, i) => (
+                <li key={p.id}>
+                  <button type="button" disabled={!lista} onClick={() => ir(i)} className="group relative flex w-full flex-col items-start gap-1 pt-0.5 text-left">
+                    <span className={`h-3 w-3 border-2 transition ${i === paso ? "scale-125 border-[#FFE14D] bg-[#FFB000]" : i < paso ? "border-[#FFB000] bg-[#0A0A0B]" : "border-white/30 bg-[#0A0A0B] group-hover:border-white"}`} />
+                    <span className={`block w-full truncate pr-2 text-[11px] leading-tight ${i === paso ? "font-semibold text-white" : "text-[#9B9BA1] group-hover:text-white"}`}>
+                      <span className="cifra-tabular mr-1 text-[#5E5E66]">{String(i + 1).padStart(2, "0")}</span>
+                      {/* En pantallas angostas solo el número; el título del paso actual siempre. */}
+                      <span className={i === paso ? "" : "hidden xl:inline"}>{p.titulo}</span>
+                    </span>
+                    {i === paso && auto && lista ? <span key={paso} className="vt-progreso-paso absolute -bottom-1 left-0 h-0.5 bg-[#FFB000]" style={{ animationDuration: `${SEG_POR_PASO}s` }} /> : null}
+                  </button>
+                </li>
+              ))}
+            </ol>
           </div>
           {paso === PASOS.length - 1 ? (
-            <button type="button" onClick={reiniciar} disabled={!lista} className="rounded-md bg-[#00AEC0] px-3 py-1 text-xs font-semibold text-[#051417] disabled:opacity-30">
-              ↺ Volver al inicio
+            <button type="button" onClick={reiniciar} disabled={!lista} className="hud h-9 shrink-0 bg-[#FFB000] px-3 text-[10px] font-bold text-[#0A0A0B] disabled:opacity-30">
+              ↺ Inicio
             </button>
           ) : (
-            <button type="button" onClick={() => ir(paso + 1)} disabled={!lista} className="rounded-md bg-[#00AEC0] px-3 py-1 text-xs font-semibold text-[#051417] hover:bg-[#19C3D4] disabled:opacity-30">
+            <button type="button" onClick={() => ir(paso + 1)} disabled={!lista} className="hud h-9 shrink-0 bg-[#FFB000] px-3 text-[10px] font-bold text-[#0A0A0B] disabled:opacity-30">
               Siguiente →
             </button>
           )}
         </div>
-      </section>
+      </nav>
 
-      {/* Panel contextual */}
-      <aside className="absolute bottom-5 right-5 top-[11.5rem] z-10 hidden w-[22rem] flex-col gap-3 overflow-y-auto rounded-xl border border-white/10 bg-[#051417]/[0.94] p-4 md:flex">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8CA8AD]">Detalle · {actual.titulo}</p>
-        {panel}
-      </aside>
-
-      {cargaVisible ? <PantallaCarga saliendo={saliendo} duracionMs={duracionCarga} onSaltar={terminarCarga} /> : null}
+      {fase === "CARGA" ? <IntroTermica mapaListo={mapaListo} onTerminar={alTerminarIntro} /> : null}
     </div>
   );
 }

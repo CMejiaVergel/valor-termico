@@ -5,22 +5,25 @@ import type { Origen } from "@/dominio/escenario";
 
 // Piezas compartidas de la vitrina: formatos, colores, cifras animadas y la
 // marca de origen que acompaña a cada número (regla: sin origen no se muestra).
+// Identidad visual: cámara termográfica (grafito + escala ironbow).
 
 export const COLOR = {
-  fondo: "#051417",
-  fondo2: "#0E2B30",
-  tarjeta: "#122E33",
-  teal: "#00AEC0",
-  naranja: "#FF8A3D",
-  magenta: "#F0479A",
-  lima: "#CFE84E",
-  azul: "#60A5FA",
-  verde: "#4ADE80",
-  amarillo: "#FACC15",
-  rojo: "#EF4444",
-  texto: "#E0F0F2",
-  texto2: "#8CA8AD",
-  texto3: "#5A7A80",
+  fondo: "#0A0A0B",
+  fondo2: "#141416",
+  tarjeta: "#1B1B1E",
+  /** Acento de interfaz (ámbar). */
+  teal: "#FFB000",
+  naranja: "#FF5A1F",
+  magenta: "#E8336D",
+  /** Selección / lo más caliente. */
+  lima: "#FFE14D",
+  azul: "#5AC8FA",
+  verde: "#3DDC84",
+  amarillo: "#F5C518",
+  rojo: "#FF3B30",
+  texto: "#EDEDED",
+  texto2: "#9B9BA1",
+  texto3: "#5E5E66",
 } as const;
 
 export const TONO_ORIGEN: Record<Origen, string> = { MEDIDO: COLOR.verde, DECLARADO: COLOR.azul, ESTIMADO: COLOR.amarillo };
@@ -30,14 +33,14 @@ export const usd = (n: number) => (Math.abs(n) >= 1e6 ? `USD ${num(n / 1e6, 2)} 
 export const mw = (n: number) => `${num(n, n < 10 ? 1 : 0)} MW`;
 export const anios = (n: number) => (Number.isFinite(n) ? `${num(n, 1)} años` : "sin retorno");
 
-/** Escala de temperatura 0–320 °C (turquesa → lima → naranja → magenta → rojo). */
+/** Escala de temperatura 0–320 °C, ironbow (azul frío → violeta → magenta → naranja → amarillo → blanco). */
 const PARADAS: Array<[number, [number, number, number]]> = [
-  [0, [0, 174, 192]],
-  [60, [74, 222, 128]],
-  [110, [207, 232, 78]],
-  [170, [255, 138, 61]],
-  [240, [240, 71, 154]],
-  [320, [239, 68, 68]],
+  [0, [60, 90, 220]],
+  [60, [140, 50, 180]],
+  [110, [225, 55, 110]],
+  [170, [255, 110, 30]],
+  [240, [255, 195, 45]],
+  [320, [255, 250, 215]],
 ];
 export const T_MAX_ESCALA = 320;
 export function rgbTemperatura(t: number): [number, number, number] {
@@ -98,11 +101,11 @@ interface PropsKpi {
 
 export function Kpi({ etiqueta, valor, unidad, origen, decimales, formato, resaltar, activo = true }: PropsKpi) {
   return (
-    <div className={`flex min-w-0 flex-col gap-1 rounded-lg border px-3 py-2 transition-opacity duration-500 ${resaltar ? "border-[#CFE84E]/60 bg-[#1B2E12]/95" : "border-white/10 bg-[#051417]/90"} ${activo ? "opacity-100" : "opacity-45"}`}>
-      <span className="truncate text-[11px] text-[#8CA8AD]">{etiqueta}</span>
+    <div className={`flex min-w-0 flex-col gap-1 rounded-[3px] border px-3 py-2 transition-opacity duration-500 ${resaltar ? "border-[#FFE14D]/60 bg-[#2A2410]/95" : "border-white/10 bg-[#0A0A0B]/90"} ${activo ? "opacity-100" : "opacity-45"}`}>
+      <span className="truncate text-[11px] text-[#9B9BA1]">{etiqueta}</span>
       <span className="cifra-tabular text-xl font-semibold leading-none text-white">
         {activo ? <Contador valor={valor} decimales={decimales} formato={formato} /> : "—"}
-        {unidad && activo ? <span className="ml-1 text-xs font-normal text-[#8CA8AD]">{unidad}</span> : null}
+        {unidad && activo ? <span className="ml-1 text-xs font-normal text-[#9B9BA1]">{unidad}</span> : null}
       </span>
       <ChipOrigen origen={origen} />
     </div>
@@ -111,11 +114,11 @@ export function Kpi({ etiqueta, valor, unidad, origen, decimales, formato, resal
 
 export function KpiMini({ etiqueta, valor, unidad, origen, decimales, formato, resaltar, activo = true }: PropsKpi) {
   return (
-    <div className={`flex min-w-[6.8rem] shrink-0 snap-start flex-col rounded-lg border px-2 py-1 ${resaltar ? "border-[#CFE84E]/60 bg-[#1B2E12]/95" : "border-white/10 bg-[#051417]/90"} ${activo ? "" : "opacity-45"}`}>
-      <span className="truncate text-[9px] text-[#8CA8AD]">{etiqueta}</span>
+    <div className={`flex min-w-[6.8rem] shrink-0 snap-start flex-col rounded-[3px] border px-2 py-1 ${resaltar ? "border-[#FFE14D]/60 bg-[#2A2410]/95" : "border-white/10 bg-[#0A0A0B]/90"} ${activo ? "" : "opacity-45"}`}>
+      <span className="truncate text-[9px] text-[#9B9BA1]">{etiqueta}</span>
       <span className="cifra-tabular text-sm font-semibold leading-tight text-white">
         {activo ? <Contador valor={valor} decimales={decimales} formato={formato} /> : "—"}
-        {unidad && activo ? <span className="ml-0.5 text-[9px] font-normal text-[#8CA8AD]">{unidad}</span> : null}
+        {unidad && activo ? <span className="ml-0.5 text-[9px] font-normal text-[#9B9BA1]">{unidad}</span> : null}
       </span>
       <ChipOrigen origen={origen} mini />
     </div>
@@ -130,12 +133,12 @@ export function BarraTemperatura({ tMin, tMax, punto, alto = 6 }: { tMin?: numbe
       {tMin !== undefined && tMax !== undefined ? (
         <>
           {/* Fuera del rango la escala se apaga; el rango queda con su color y un borde. */}
-          <div className="absolute inset-y-0 left-0 rounded-l-full bg-[#051417]/75" style={{ width: p(tMin) }} />
-          <div className="absolute inset-y-0 right-0 rounded-r-full bg-[#051417]/75" style={{ left: p(tMax) }} />
+          <div className="absolute inset-y-0 left-0 rounded-l-full bg-[#0A0A0B]/75" style={{ width: p(tMin) }} />
+          <div className="absolute inset-y-0 right-0 rounded-r-full bg-[#0A0A0B]/75" style={{ left: p(tMax) }} />
           <div className="absolute -inset-y-px rounded-full ring-[1.5px] ring-white" style={{ left: p(tMin), width: `calc(${p(tMax)} - ${p(tMin)})` }} />
         </>
       ) : (
-        <div className="absolute inset-0 rounded-full bg-[#051417]/55" />
+        <div className="absolute inset-0 rounded-full bg-[#0A0A0B]/55" />
       )}
       {punto !== undefined ? <div className="absolute -top-1 h-[calc(100%+8px)] w-1 -translate-x-1/2 rounded bg-white shadow" style={{ left: p(punto) }} /> : null}
     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DEMANDAS, FUENTES, GAS_M3_POR_MWH, HABILITADORES, MODELOS, NOMBRE_CRITERIO8, PESOS, SUPUESTOS_INICIALES, TECNOLOGIAS, type Criterio8, type IdPaso, type Supuestos } from "@/dominio/escenario";
 import { CALOR_RESIDUAL_MW, ajusteTecnologia, evaluar, type EstadoCriterio, type Oportunidad, type Par } from "@/dominio/motor";
-import { Barras, COLOR_PAR, COLOR_PRIORIDAD_CSS, MatrizCruce, MatrizPrioridad, Radar, SaltoTemperatura, Serie } from "@/componentes/graficos";
+import { Barras, COLOR_PAR, FlujoCaja, COLOR_PRIORIDAD_CSS, MatrizCruce, MatrizPrioridad, Radar, SaltoTemperatura, Serie } from "@/componentes/graficos";
 import { PALETAS, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
 import { BarraTemperatura, COLOR, ChipOrigen, anios, cssTemperatura, mw, num, usd } from "@/componentes/ui";
 
@@ -37,15 +37,15 @@ function Titulo({ children, sub }: { children: React.ReactNode; sub?: string }) 
   return (
     <div>
       <h3 className="text-sm font-semibold text-white">{children}</h3>
-      {sub ? <p className="text-[11px] text-[#8CA8AD]">{sub}</p> : null}
+      {sub ? <p className="text-[11px] text-[#9B9BA1]">{sub}</p> : null}
     </div>
   );
 }
 
 function Cifra({ etiqueta, valor, color = "#fff", origen = "ESTIMADO" as const }: { etiqueta: string; valor: string; color?: string; origen?: "MEDIDO" | "DECLARADO" | "ESTIMADO" }) {
   return (
-    <div className="rounded-md border border-white/10 bg-white/5 p-2">
-      <p className="text-[10px] text-[#8CA8AD]">{etiqueta}</p>
+    <div className="rounded-[2px] border border-white/10 bg-white/5 p-2">
+      <p className="text-[10px] text-[#9B9BA1]">{etiqueta}</p>
       <p className="cifra-tabular text-base font-semibold leading-tight" style={{ color }}>
         {valor}
       </p>
@@ -56,13 +56,13 @@ function Cifra({ etiqueta, valor, color = "#fff", origen = "ESTIMADO" as const }
 
 function ParCabecera({ op }: { op: Oportunidad }) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-[#CFE84E]/40 bg-[#CFE84E]/5 p-2 text-xs">
-      <span className="rounded px-1.5 py-0.5 font-semibold text-[#051417]" style={{ background: cssTemperatura(op.fuente.tMax) }}>
+    <div className="flex items-center gap-2 rounded-[2px] border border-[#FFE14D]/40 bg-[#FFE14D]/5 p-2 text-xs">
+      <span className="rounded px-1.5 py-0.5 font-semibold text-[#0A0A0B]" style={{ background: cssTemperatura(op.fuente.tMax) }}>
         {op.fuente.id}
       </span>
       <span className="min-w-0 flex-1 truncate text-white">{op.fuente.nombre}</span>
-      <span className="text-[#CFE84E]">→</span>
-      <span className="rounded bg-[#60A5FA] px-1.5 py-0.5 font-semibold text-[#051417]">{op.demanda.id}</span>
+      <span className="text-[#FFE14D]">→</span>
+      <span className="rounded bg-[#5AC8FA] px-1.5 py-0.5 font-semibold text-[#0A0A0B]">{op.demanda.id}</span>
       <span className="min-w-0 flex-1 truncate text-white">{op.demanda.nombre}</span>
     </div>
   );
@@ -71,7 +71,7 @@ function ParCabecera({ op }: { op: Oportunidad }) {
 function Deslizador({ etiqueta, valor, min, max, paso, formato, onCambio }: { etiqueta: string; valor: number; min: number; max: number; paso: number; formato: (n: number) => string; onCambio: (n: number) => void }) {
   return (
     <label className="flex flex-col gap-1 text-[11px]">
-      <span className="flex justify-between text-[#8CA8AD]">
+      <span className="flex justify-between text-[#9B9BA1]">
         {etiqueta}
         <span className="cifra-tabular text-white">{formato(valor)}</span>
       </span>
@@ -93,13 +93,13 @@ function PanelProblema() {
         <Cifra etiqueta="Gas natural equivalente" valor={`${num((energia * GAS_M3_POR_MWH) / 1e6, 0)} M m³`} />
       </div>
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">Potencia por fuente</p>
+        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">Potencia por fuente</p>
         <Barras
           filas={[...FUENTES].sort((a, b) => b.potencia - a.potencia).map((f) => ({ id: f.id, etiqueta: `${f.id} · ${f.nombre}`, valor: f.potencia, color: cssTemperatura(f.tMax), nota: `${f.tMin}–${f.tMax} °C · ${f.ubicacion}` }))}
           formato={(n) => `${num(n)} MW`}
         />
       </div>
-      <p className="text-[11px] text-[#8CA8AD]">El color de cada barra y de cada columna del mapa es la temperatura máxima de la fuente: cuanto más caliente, más valioso es ese calor.</p>
+      <p className="text-[11px] text-[#9B9BA1]">El color de cada barra y de cada columna del mapa es la temperatura máxima de la fuente: cuanto más caliente, más valioso es ese calor.</p>
     </div>
   );
 }
@@ -109,9 +109,9 @@ function PanelInventario({ onPunto, seleccion }: { onPunto: (id: string) => void
   const [tab, setTab] = useState<"F" | "D">("F");
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-2 overflow-hidden rounded-md border border-white/15 text-xs">
+      <div className="grid grid-cols-2 overflow-hidden rounded-[2px] border border-white/15 text-xs">
         {(["F", "D"] as const).map((t) => (
-          <button key={t} type="button" onClick={() => setTab(t)} className={`px-2 py-1.5 ${tab === t ? (t === "F" ? "bg-[#FF8A3D] font-semibold text-[#051417]" : "bg-[#60A5FA] font-semibold text-[#051417]") : "text-[#8CA8AD]"}`}>
+          <button key={t} type="button" onClick={() => setTab(t)} className={`px-2 py-1.5 ${tab === t ? (t === "F" ? "bg-[#FF5A1F] font-semibold text-[#0A0A0B]" : "bg-[#5AC8FA] font-semibold text-[#0A0A0B]") : "text-[#9B9BA1]"}`}>
             {t === "F" ? `Fuentes (${FUENTES.length})` : `Demandas (${DEMANDAS.length})`}
           </button>
         ))}
@@ -120,17 +120,17 @@ function PanelInventario({ onPunto, seleccion }: { onPunto: (id: string) => void
         {tab === "F"
           ? FUENTES.map((f) => (
               <li key={f.id}>
-                <button type="button" onClick={() => onPunto(f.id)} className={`w-full rounded-md border px-2 py-1.5 text-left ${seleccion === f.id ? "border-[#FF8A3D] bg-[#FF8A3D]/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
+                <button type="button" onClick={() => onPunto(f.id)} className={`w-full rounded-[2px] border px-2 py-1.5 text-left ${seleccion === f.id ? "border-[#FF5A1F] bg-[#FF5A1F]/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
                   <span className="flex items-center justify-between gap-2 text-xs">
                     <span className="truncate text-white">
                       <b style={{ color: cssTemperatura(f.tMax) }}>{f.id}</b> {f.nombre}
                     </span>
-                    <span className="cifra-tabular shrink-0 text-[#8CA8AD]">{f.potencia} MW</span>
+                    <span className="cifra-tabular shrink-0 text-[#9B9BA1]">{f.potencia} MW</span>
                   </span>
                   <span className="mt-1.5 block">
                     <BarraTemperatura tMin={f.tMin} tMax={f.tMax} alto={5} />
                   </span>
-                  <span className="mt-1 flex items-center justify-between text-[10px] text-[#8CA8AD]">
+                  <span className="mt-1 flex items-center justify-between text-[10px] text-[#9B9BA1]">
                     <span>
                       {f.tMin}–{f.tMax} °C · continuidad <span style={{ color: f.continuidad === "Alta" ? COLOR.verde : f.continuidad === "Media" ? COLOR.amarillo : COLOR.rojo }}>{f.continuidad.toLowerCase()}</span>
                     </span>
@@ -141,17 +141,17 @@ function PanelInventario({ onPunto, seleccion }: { onPunto: (id: string) => void
             ))
           : DEMANDAS.map((d) => (
               <li key={d.id}>
-                <button type="button" onClick={() => onPunto(d.id)} className={`w-full rounded-md border px-2 py-1.5 text-left ${seleccion === d.id ? "border-[#60A5FA] bg-[#60A5FA]/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
+                <button type="button" onClick={() => onPunto(d.id)} className={`w-full rounded-[2px] border px-2 py-1.5 text-left ${seleccion === d.id ? "border-[#5AC8FA] bg-[#5AC8FA]/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
                   <span className="flex items-center justify-between gap-2 text-xs">
                     <span className="truncate text-white">
-                      <b className="text-[#60A5FA]">{d.id}</b> {d.nombre}
+                      <b className="text-[#5AC8FA]">{d.id}</b> {d.nombre}
                     </span>
-                    <span className="cifra-tabular shrink-0 text-[#8CA8AD]">{d.potencia} MW</span>
+                    <span className="cifra-tabular shrink-0 text-[#9B9BA1]">{d.potencia} MW</span>
                   </span>
                   <span className="mt-1.5 block">
                     <BarraTemperatura punto={d.tReq} alto={5} />
                   </span>
-                  <span className="mt-1 flex items-center justify-between text-[10px] text-[#8CA8AD]">
+                  <span className="mt-1 flex items-center justify-between text-[10px] text-[#9B9BA1]">
                     <span>
                       {d.tipo === "FRIO" ? "Frío" : d.tipo === "CALOR" ? "Calor" : "Electricidad"} · {d.rango} · {d.ubicacion}
                     </span>
@@ -176,10 +176,10 @@ function PanelTermico({ paleta, onPaleta, intensidad, onIntensidad }: Pick<Conte
     <div className="flex flex-col gap-3">
       <Titulo sub="Como una cámara termográfica sobre la planta">Termografía del inventario</Titulo>
       <div>
-        <p className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">Paleta</p>
+        <p className="mb-1.5 text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">Paleta</p>
         <div className="grid grid-cols-2 gap-1.5">
           {(Object.keys(PALETAS) as PaletaCalor[]).map((k) => (
-            <button key={k} type="button" onClick={() => onPaleta(k)} className={`flex flex-col gap-1 rounded-md border p-1.5 text-left text-[11px] ${paleta === k ? "border-[#CFE84E] text-white" : "border-white/10 text-[#8CA8AD] hover:text-white"}`}>
+            <button key={k} type="button" onClick={() => onPaleta(k)} className={`flex flex-col gap-1 rounded-[2px] border p-1.5 text-left text-[11px] ${paleta === k ? "border-[#FFE14D] text-white" : "border-white/10 text-[#9B9BA1] hover:text-white"}`}>
               <span className="h-2 rounded-full" style={{ background: `linear-gradient(90deg, ${PALETAS[k].colores.map((c) => `rgb(${c.join(",")})`).join(",")})` }} />
               {PALETAS[k].nombre}
             </button>
@@ -188,7 +188,7 @@ function PanelTermico({ paleta, onPaleta, intensidad, onIntensidad }: Pick<Conte
       </div>
       <Deslizador etiqueta="Intensidad" valor={intensidad} min={0.4} max={2.5} paso={0.1} formato={(n) => `${Math.round(n * 100)} %`} onCambio={onIntensidad} />
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">Calor residual por zona</p>
+        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">Calor residual por zona</p>
         <Barras filas={zonas.map(([z, v]) => ({ id: z, etiqueta: z, valor: v, color: COLOR.naranja, nota: `${Math.round((v / CALOR_RESIDUAL_MW) * 100)} % del total` }))} formato={(n) => `${num(n)} MW`} />
       </div>
     </div>
@@ -203,44 +203,44 @@ function PanelCruce({ pares, parSeleccionado, onPar, onEvaluarPar, op }: Pick<Co
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-1.5 text-center">
         {(["COMPATIBLE", "CONDICIONADO", "DESCARTADO"] as const).map((e) => (
-          <div key={e} className="rounded-md border border-white/10 bg-white/5 py-1.5">
-            <p className="cifra-tabular text-lg font-semibold" style={{ color: COLOR_PAR[e] === "#3A5258" ? COLOR.texto2 : COLOR_PAR[e] }}>
+          <div key={e} className="rounded-[2px] border border-white/10 bg-white/5 py-1.5">
+            <p className="cifra-tabular text-lg font-semibold" style={{ color: COLOR_PAR[e] === "#3A3A40" ? COLOR.texto2 : COLOR_PAR[e] }}>
               {cuenta(e)}
             </p>
-            <p className="text-[10px] text-[#8CA8AD]">{e === "COMPATIBLE" ? "compatibles" : e === "CONDICIONADO" ? "condicionados" : "descartados"}</p>
+            <p className="text-[10px] text-[#9B9BA1]">{e === "COMPATIBLE" ? "compatibles" : e === "CONDICIONADO" ? "condicionados" : "descartados"}</p>
           </div>
         ))}
       </div>
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">56 pares · toque una celda</p>
+        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">56 pares · toque una celda</p>
         <MatrizCruce pares={pares} seleccion={p.id} onSel={onPar} />
       </div>
       <div className="flex flex-col gap-2 border-t border-white/10 pt-2">
         <p className="text-xs text-white">
-          <b style={{ color: cssTemperatura(p.fuente.tMax) }}>{p.fuente.id}</b> {p.fuente.nombre} → <b className="text-[#60A5FA]">{p.demanda.id}</b> {p.demanda.nombre}
+          <b style={{ color: cssTemperatura(p.fuente.tMax) }}>{p.fuente.id}</b> {p.fuente.nombre} → <b className="text-[#5AC8FA]">{p.demanda.id}</b> {p.demanda.nombre}
         </p>
-        <span className="w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold text-[#051417]" style={{ background: COLOR_PAR[p.estado] === "#3A5258" ? "#78908F" : COLOR_PAR[p.estado] }}>
+        <span className="w-fit rounded-full px-2 py-0.5 text-[11px] font-semibold text-[#0A0A0B]" style={{ background: COLOR_PAR[p.estado] === "#3A3A40" ? "#828288" : COLOR_PAR[p.estado] }}>
           {p.estado === "COMPATIBLE" ? "Compatible" : p.estado === "CONDICIONADO" ? "Condicionado" : "Descartado"}
           {p.tecnologia ? ` · ${p.tecnologia.nombre}` : ""}
         </span>
         <ul className="flex flex-col gap-1.5">
           {p.criterios.map((c) => (
             <li key={c.codigo} className="grid grid-cols-[2rem_1fr] gap-2 text-xs">
-              <span className="cifra-tabular rounded px-1 py-0.5 text-center font-semibold text-[#051417]" style={{ background: COLOR_CRITERIO[c.estado] }}>
+              <span className="cifra-tabular rounded px-1 py-0.5 text-center font-semibold text-[#0A0A0B]" style={{ background: COLOR_CRITERIO[c.estado] }}>
                 {c.codigo}
               </span>
               <span>
                 <span className="font-medium text-white">{c.nombre}</span> <span style={{ color: COLOR_CRITERIO[c.estado] }}>· {TEXTO_CRITERIO[c.estado]}</span>
-                <span className="block text-[#8CA8AD]">{c.nota}</span>
+                <span className="block text-[#9B9BA1]">{c.nota}</span>
               </span>
             </li>
           ))}
         </ul>
         {p.estado !== "DESCARTADO" ? (
           p.id === `${op.fuente.id}-${op.demanda.id}` ? (
-            <p className="text-[11px] text-[#CFE84E]">★ Este es el par que seguirá el recorrido.</p>
+            <p className="text-[11px] text-[#FFE14D]">★ Este es el par que seguirá el recorrido.</p>
           ) : (
-            <button type="button" onClick={() => onEvaluarPar(p.id)} className="w-fit rounded-md border border-[#CFE84E]/60 px-2.5 py-1 text-[11px] font-semibold text-[#CFE84E] hover:bg-[#CFE84E]/10">
+            <button type="button" onClick={() => onEvaluarPar(p.id)} className="w-fit rounded-[2px] border border-[#FFE14D]/60 px-2.5 py-1 text-[11px] font-semibold text-[#FFE14D] hover:bg-[#FFE14D]/10">
               Evaluar este par →
             </button>
           )
@@ -262,14 +262,14 @@ function PanelTecnologia({ op, onTecnologia }: Pick<ContextoPanel, "op" | "onTec
           const sel = t.id === op.tecnologia.id;
           return (
             <li key={t.id}>
-              <button type="button" disabled={!a} onClick={() => onTecnologia(t.id)} className={`w-full rounded-md border px-2 py-1.5 text-left disabled:opacity-40 ${sel ? "border-[#CFE84E] bg-[#CFE84E]/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
+              <button type="button" disabled={!a} onClick={() => onTecnologia(t.id)} className={`w-full rounded-[2px] border px-2 py-1.5 text-left disabled:opacity-40 ${sel ? "border-[#FFE14D] bg-[#FFE14D]/10" : "border-white/10 bg-white/5 hover:bg-white/10"}`}>
                 <span className="flex items-center justify-between gap-2 text-xs">
                   <span className="font-semibold text-white">{t.nombre}</span>
-                  <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold text-[#051417]" style={{ background: a === "Alta" ? COLOR.verde : a === "Media" ? COLOR.amarillo : a === "Baja" ? COLOR.naranja : "#3A5258" }}>
+                  <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold text-[#0A0A0B]" style={{ background: a === "Alta" ? COLOR.verde : a === "Media" ? COLOR.amarillo : a === "Baja" ? COLOR.naranja : "#3A3A40" }}>
                     {a ? `ajuste ${a.toLowerCase()}` : "no aplica"}
                   </span>
                 </span>
-                <span className="mt-0.5 block text-[10px] text-[#8CA8AD]">{t.ruta} · {t.descripcion}</span>
+                <span className="mt-0.5 block text-[10px] text-[#9B9BA1]">{t.ruta} · {t.descripcion}</span>
               </button>
             </li>
           );
@@ -287,38 +287,65 @@ function PanelTecnologia({ op, onTecnologia }: Pick<ContextoPanel, "op" | "onTec
 function PanelModelo({ op, onModelo, supuestos }: Pick<ContextoPanel, "op" | "onModelo" | "supuestos">) {
   const filas = MODELOS.filter((m) => !m.soloPara || m.soloPara === op.demanda.tipo).map((m) => {
     const e = evaluar(op.fuente, op.demanda, op.tecnologia, m, supuestos);
-    return { m, e };
+    // Flujo de caja acumulado de la refinería, año 0 a 5: inversión inicial y luego su parte del ahorro neto.
+    const neto = e.ahorroUSD - e.opexUSD;
+    const flujo = Array.from({ length: 6 }, (_, anio) => -e.inversionCliente + neto * m.participacionCliente * anio);
+    return { m, e, flujo };
   });
   const sel = op.modelo;
+  const elegido = filas.find((f) => f.m.id === sel.id) ?? filas[0]!;
+  const parteRefineria = Math.round(sel.participacionCliente * 100);
   return (
     <div className="flex flex-col gap-3">
       <ParCabecera op={op} />
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">Beneficio neto de la refinería a 5 años</p>
-        <Barras
-          filas={filas.map(({ m, e }) => ({ id: m.id, etiqueta: m.nombre, valor: e.beneficioCliente5, color: m.id === sel.id ? COLOR.lima : COLOR.teal, resaltar: m.id === sel.id, onClick: () => onModelo(m.id), nota: e.inversionCliente > 0 ? `invierte ${usd(e.inversionCliente)}` : "sin inversión inicial" }))}
-          formato={usd}
-        />
+        <p className="hud mb-1 text-[9px] text-[#9B9BA1]">Flujo de caja acumulado de la refinería · años 0–5</p>
+        <FlujoCaja series={filas.map(({ m, flujo }) => ({ id: m.id, nombre: m.nombre, valores: flujo }))} seleccion={sel.id} onSel={onModelo} />
       </div>
-      <div className="rounded-md border border-[#CFE84E]/40 bg-white/5 p-2 text-xs">
-        <p className="font-semibold text-white">{sel.nombre}</p>
-        <p className="text-[#C9DADD]">{sel.descripcion}</p>
+      {/* Quién pone el dinero y quién se queda con qué parte del ahorro. */}
+      <div className="visor p-3 text-xs">
+        <p className="hud text-[10px] text-[#FFB000]">{sel.nombre} · cómo paga la refinería</p>
+        <p className="mt-1 text-[#C8C8CC]">{sel.descripcion}</p>
+        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center text-[11px]">
+          <div className="border border-white/15 p-2">
+            <p className="hud text-[9px] text-[#9B9BA1]">Refinería</p>
+            <p className="cifra-tabular text-sm font-semibold text-white">{sel.inversionCliente === 0 ? "USD 0" : usd(elegido.e.inversionCliente)}</p>
+            <p className="text-[10px] text-[#9B9BA1]">inversión inicial</p>
+          </div>
+          <div className="flex flex-col items-center text-[10px] text-[#9B9BA1]">
+            <span className="text-[#FFB000]">{sel.inversionCliente < 1 ? "◀ invierte" : ""}</span>
+            <span>⇄</span>
+            <span className="text-[#3DDC84]">{parteRefineria < 100 ? `paga ${100 - parteRefineria} % ▶` : ""}</span>
+          </div>
+          <div className="border border-white/15 p-2">
+            <p className="hud text-[9px] text-[#9B9BA1]">Quien ejecuta</p>
+            <p className="cifra-tabular text-sm font-semibold text-white">{sel.inversionCliente === 1 ? "USD 0" : usd(elegido.e.capexUSD * (1 - sel.inversionCliente))}</p>
+            <p className="text-[10px] text-[#9B9BA1]">inversión inicial</p>
+          </div>
+        </div>
+        <div className="mt-3 h-2 w-full overflow-hidden border border-white/15" aria-label={`La refinería conserva el ${parteRefineria} % del ahorro`}>
+          <div className="h-full bg-[#3DDC84]" style={{ width: `${parteRefineria}%` }} />
+        </div>
+        <p className="mt-1 flex justify-between text-[10px] text-[#9B9BA1]">
+          <span>Refinería conserva {parteRefineria} % del ahorro</span>
+          <span>{100 - parteRefineria} % paga el servicio</span>
+        </p>
         <div className="mt-2 grid grid-cols-3 gap-1 text-[10px]">
-          <span className="text-[#8CA8AD]">
-            Inversión
-            <b className="block text-white">{sel.inversionCliente === 0 ? "ninguna" : `${Math.round(sel.inversionCliente * 100)} % CAPEX`}</b>
+          <span className="text-[#9B9BA1]">
+            Beneficio a 5 años
+            <b className="cifra-tabular block text-white">{usd(elegido.e.beneficioCliente5)}</b>
           </span>
-          <span className="text-[#8CA8AD]">
-            Riesgo proveedor
+          <span className="text-[#9B9BA1]">
+            Riesgo de quien ejecuta
             <b className="block text-white">{sel.riesgoProveedor}</b>
           </span>
-          <span className="text-[#8CA8AD]">
+          <span className="text-[#9B9BA1]">
             Pago por resultado
             <b className="block text-white">{sel.pagoPorResultado}</b>
           </span>
         </div>
       </div>
-      <p className="text-[11px] text-[#8CA8AD]">Ahorro neto anual × 5 años × participación de la refinería, menos su inversión. Cifras ilustrativas.</p>
+      <p className="text-[11px] text-[#9B9BA1]">Toque una curva para elegir el modelo. Ahorro neto anual (ahorro − 4 % de OPEX) × participación de la refinería, menos su inversión. Cifras ilustrativas.</p>
     </div>
   );
 }
@@ -329,7 +356,7 @@ function PanelEvaluacion({ op, supuestos, onSupuestos }: Pick<ContextoPanel, "op
   return (
     <div className="flex flex-col gap-3">
       <ParCabecera op={op} />
-      <p className="text-[11px] text-[#8CA8AD]">
+      <p className="text-[11px] text-[#9B9BA1]">
         {op.tecnologia.nombre} · modelo {op.modelo.nombre}
       </p>
       <div className="grid grid-cols-2 gap-1.5">
@@ -340,14 +367,14 @@ function PanelEvaluacion({ op, supuestos, onSupuestos }: Pick<ContextoPanel, "op
         <Cifra etiqueta="Retorno (payback)" valor={anios(op.paybackAnios)} />
         <Cifra etiqueta="CO₂ evitado / año" valor={`${num(op.co2t)} t`} />
       </div>
-      <div className="flex items-center gap-3 rounded-md border border-white/10 bg-white/5 p-2">
+      <div className="flex items-center gap-3 rounded-[2px] border border-white/10 bg-white/5 p-2">
         <div className="flex gap-1">
           {(["Bajo", "Medio", "Alto"] as const).map((r) => (
             <span key={r} className="h-4 w-4 rounded-full" style={{ background: { Bajo: COLOR.verde, Medio: COLOR.amarillo, Alto: COLOR.rojo }[r], opacity: op.riesgo === r ? 1 : 0.18, boxShadow: op.riesgo === r ? `0 0 10px ${semaforo}` : undefined }} />
           ))}
         </div>
         <div className="text-xs">
-          <p className="text-[#8CA8AD]">Riesgo</p>
+          <p className="text-[#9B9BA1]">Riesgo</p>
           <p className="font-semibold" style={{ color: semaforo }}>
             {op.riesgo}
           </p>
@@ -356,23 +383,23 @@ function PanelEvaluacion({ op, supuestos, onSupuestos }: Pick<ContextoPanel, "op
           <p className="cifra-tabular text-2xl font-bold leading-none" style={{ color: COLOR_PRIORIDAD_CSS[op.prioridad] }}>
             {num(op.puntaje, 2)}
           </p>
-          <p className="text-[10px] text-[#8CA8AD]">
+          <p className="text-[10px] text-[#9B9BA1]">
             {op.prioridad} · {op.accion}
           </p>
         </div>
       </div>
       <Radar puntajes={op.puntajes} />
-      <details className="text-[11px] text-[#8CA8AD]">
+      <details className="text-[11px] text-[#9B9BA1]">
         <summary className="cursor-pointer text-white">Ponderación del puntaje</summary>
         <p className="mt-1">{(Object.keys(PESOS) as Criterio8[]).map((k) => `${NOMBRE_CRITERIO8[k]} ${Math.round(PESOS[k] * 100)} %`).join(" · ")}</p>
       </details>
       <div className="flex flex-col gap-2 border-t border-white/10 pt-2">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">Supuestos (mueva y compare)</p>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">Supuestos (mueva y compare)</p>
         <Deslizador etiqueta="Eficiencia de aprovechamiento" valor={supuestos.eficiencia} min={0.3} max={0.9} paso={0.05} formato={(n) => `${Math.round(n * 100)} %`} onCambio={(eficiencia) => onSupuestos({ ...supuestos, eficiencia })} />
         <Deslizador etiqueta="Costo de energía evitada" valor={supuestos.costoEnergia} min={20} max={120} paso={5} formato={(n) => `USD ${n}/MWh`} onCambio={(costoEnergia) => onSupuestos({ ...supuestos, costoEnergia })} />
         <Deslizador etiqueta="Horas de operación al año" valor={supuestos.horas} min={4000} max={8760} paso={20} formato={(n) => `${num(n)} h`} onCambio={(horas) => onSupuestos({ ...supuestos, horas })} />
         <Deslizador etiqueta="Factor CAPEX" valor={supuestos.factorCapex} min={0.5} max={2} paso={0.1} formato={(n) => `${num(n, 1)}×`} onCambio={(factorCapex) => onSupuestos({ ...supuestos, factorCapex })} />
-        <button type="button" onClick={() => onSupuestos(SUPUESTOS_INICIALES)} className="w-fit text-[11px] text-[#00AEC0] hover:text-white">
+        <button type="button" onClick={() => onSupuestos(SUPUESTOS_INICIALES)} className="w-fit text-[11px] text-[#FFB000] hover:text-white">
           ↺ Restablecer supuestos
         </button>
       </div>
@@ -388,7 +415,7 @@ function PanelPortafolio({ cartera, op, onPar }: Pick<ContextoPanel, "cartera" |
       <MatrizPrioridad cartera={cartera} seleccion={sel} onSel={onPar} />
       <div className="overflow-x-auto">
         <table className="w-full text-[11px]">
-          <thead className="text-left text-[10px] text-[#8CA8AD]">
+          <thead className="text-left text-[10px] text-[#9B9BA1]">
             <tr>
               <th className="py-1">Código</th>
               <th>Par</th>
@@ -408,7 +435,7 @@ function PanelPortafolio({ cartera, op, onPar }: Pick<ContextoPanel, "cartera" |
                   <td className="text-white">
                     {o.fuente.id}→{o.demanda.id}
                   </td>
-                  <td className="max-w-[6rem] truncate text-[#C9DADD]">{o.tecnologia.nombre}</td>
+                  <td className="max-w-[6rem] truncate text-[#C8C8CC]">{o.tecnologia.nombre}</td>
                   <td className="cifra-tabular text-right text-white">{usd(o.ahorroUSD)}</td>
                   <td className="cifra-tabular text-right font-semibold" style={{ color: COLOR_PRIORIDAD_CSS[o.prioridad] }}>
                     {num(o.puntaje, 2)}
@@ -419,7 +446,7 @@ function PanelPortafolio({ cartera, op, onPar }: Pick<ContextoPanel, "cartera" |
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-[#8CA8AD]">Cada fuente se asigna una sola vez: el portafolio no cuenta dos veces el mismo calor. Modelo de referencia: ESCO.</p>
+      <p className="text-[11px] text-[#9B9BA1]">Cada fuente se asigna una sola vez: el portafolio no cuenta dos veces el mismo calor. Modelo de referencia: ESCO.</p>
     </div>
   );
 }
@@ -448,10 +475,10 @@ function PanelMonitoreo({ op }: Pick<ContextoPanel, "op">) {
   return (
     <div className="flex flex-col gap-3">
       <ParCabecera op={op} />
-      <div className="flex items-center gap-2 text-xs text-[#4ADE80]">
+      <div className="flex items-center gap-2 text-xs text-[#3DDC84]">
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#4ADE80] opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4ADE80]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3DDC84] opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#3DDC84]" />
         </span>
         En vivo · lectura cada segundo (simulada)
       </div>
@@ -459,23 +486,23 @@ function PanelMonitoreo({ op }: Pick<ContextoPanel, "op">) {
         <Cifra etiqueta={`Entrada · ${op.fuente.id}`} valor={`${num(tEntra, 1)} °C`} color={cssTemperatura(tEntra)} origen="MEDIDO" />
         <Cifra etiqueta={`Entrega · ${op.demanda.id}`} valor={`${num(tSale, 1)} °C`} color={COLOR.azul} origen="MEDIDO" />
       </div>
-      <div className="rounded-md border border-white/10 bg-white/5 p-2">
+      <div className="rounded-[2px] border border-white/10 bg-white/5 p-2">
         <div className="flex items-baseline justify-between text-xs">
-          <span className="text-[#8CA8AD]">Potencia recuperada</span>
+          <span className="text-[#9B9BA1]">Potencia recuperada</span>
           <span className="cifra-tabular text-white">
-            {num(actual)} <span className="text-[#8CA8AD]">/ {num(esperado)} kW esperados</span>
+            {num(actual)} <span className="text-[#9B9BA1]">/ {num(esperado)} kW esperados</span>
           </span>
         </div>
         <Serie valores={serie} color={COLOR.lima} referencia={esperado} />
       </div>
-      <div className={`rounded-md border p-2 text-xs ${dif <= 5 ? "border-[#4ADE80]/50 text-[#4ADE80]" : "border-[#EF4444] text-[#EF4444]"}`}>
+      <div className={`rounded-[2px] border p-2 text-xs ${dif <= 5 ? "border-[#3DDC84]/50 text-[#3DDC84]" : "border-[#FF3B30] text-[#FF3B30]"}`}>
         Conciliación entregado–esperado: {num(dif, 1)} % (tolerancia 5 %) · {dif <= 5 ? "dentro de lo pactado" : "fuera de lo pactado: se avisa a las partes"}
       </div>
       <Cifra etiqueta="Calor rescatado en el mes" valor={`${num(mwh, 1)} MWh`} color={COLOR.lima} origen="MEDIDO" />
       <ul className="flex flex-col gap-1 text-[11px]">
         {HABILITADORES.map((h) => (
           <li key={h.id} className="rounded border border-white/10 px-2 py-1">
-            <b className="text-white">{h.nombre}</b> <span className="text-[#8CA8AD]">· {h.descripcion}</span>
+            <b className="text-white">{h.nombre}</b> <span className="text-[#9B9BA1]">· {h.descripcion}</span>
           </li>
         ))}
       </ul>
@@ -501,11 +528,11 @@ function PanelImpacto({ op, cartera }: Pick<ContextoPanel, "op" | "cartera">) {
   const p2 = cartera.filter((o) => o.prioridad === "P2").length;
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative overflow-hidden rounded-lg border border-[#CFE84E]/50 bg-gradient-to-br from-[#0E2B30] to-[#051417] p-3">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#CFE84E]/10 blur-2xl" />
-        <p className="text-[10px] uppercase tracking-[0.2em] text-[#8CA8AD]">Reporte de calor rescatado · demostración</p>
+      <div className="relative overflow-hidden rounded-[3px] border border-[#FFE14D]/50 bg-gradient-to-br from-[#141416] to-[#0A0A0B] p-3">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#FFE14D]/10 blur-2xl" />
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#9B9BA1]">Reporte de calor rescatado · demostración</p>
         <p className="font-[family-name:var(--font-titulos)] text-lg font-bold text-white">Nº CR-REF-2026-09-0001</p>
-        <p className="text-[11px] text-[#8CA8AD]">
+        <p className="text-[11px] text-[#9B9BA1]">
           Septiembre de 2026 · {op.fuente.id} → {op.demanda.id} · {op.tecnologia.nombre}
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
@@ -517,17 +544,17 @@ function PanelImpacto({ op, cartera }: Pick<ContextoPanel, "op" | "cartera">) {
         <div className="mt-2 flex items-end gap-2">
           <div className="grid grid-cols-8 gap-px rounded bg-white p-1" aria-hidden>
             {(hash || "0".repeat(64)).slice(0, 64).split("").map((ch, i) => (
-              <span key={i} className="h-1.5 w-1.5" style={{ background: parseInt(ch, 16) % 2 ? "#051417" : "#fff" }} />
+              <span key={i} className="h-1.5 w-1.5" style={{ background: parseInt(ch, 16) % 2 ? "#0A0A0B" : "#fff" }} />
             ))}
           </div>
-          <p className="min-w-0 text-[9px] text-[#8CA8AD]">
+          <p className="min-w-0 text-[9px] text-[#9B9BA1]">
             Huella SHA-256 enlazada a las mediciones
             <span className="cifra-tabular block break-all text-white/70">{hash}</span>
           </p>
         </div>
       </div>
       <div>
-        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#8CA8AD]">Portafolio completo ({cartera.length} oportunidades)</p>
+        <p className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">Portafolio completo ({cartera.length} oportunidades)</p>
         <div className="grid grid-cols-3 gap-1.5">
           <Cifra etiqueta="Calor útil" valor={mw(total.mw)} color={COLOR.lima} />
           <Cifra etiqueta="Ahorro / año" valor={usd(total.usd)} color={COLOR.lima} />
@@ -543,7 +570,7 @@ function PanelImpacto({ op, cartera }: Pick<ContextoPanel, "op" | "cartera">) {
           <li key={t}>
             <span className="absolute -left-[5px] mt-1 h-2.5 w-2.5 rounded-full" style={{ background: i === 0 ? COLOR.lima : COLOR.teal }} />
             <p className="font-medium text-white">{t}</p>
-            <p className="text-[#8CA8AD]">{d}</p>
+            <p className="text-[#9B9BA1]">{d}</p>
           </li>
         ))}
       </ol>

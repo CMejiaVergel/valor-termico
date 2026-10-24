@@ -1,14 +1,13 @@
 import localFont from "next/font/local";
 
-// Tipografías autoalojadas de Calor Rescatado: Fraunces (titulares), IBM Plex
+// Tipografías autoalojadas de Calor Rescatado: JetBrains Mono (titulares y HUD), IBM Plex
 // Sans (texto) e IBM Plex Mono (cifras tabulares). Sin Google Fonts en producción.
 
 export const fuenteTitulos = localFont({
   variable: "--font-titulos",
   display: "swap",
   src: [
-    { path: "../../public/fonts/fraunces-latin-600-normal.woff2", weight: "600", style: "normal" },
-    { path: "../../public/fonts/fraunces-latin-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "../../public/fonts/JetBrainsMono-variable.woff2", weight: "100 800", style: "normal" },
   ],
 });
 

@@ -7,8 +7,8 @@ import { COLOR, cssTemperatura, num } from "@/componentes/ui";
 // Gráficos SVG livianos de la vitrina (sin librerías): radar de 8 criterios,
 // barras, matriz de cruce 8×7, matriz de prioridad y serie de tiempo.
 
-export const COLOR_PAR: Record<EstadoPar, string> = { COMPATIBLE: COLOR.verde, CONDICIONADO: COLOR.amarillo, DESCARTADO: "#3A5258" };
-export const COLOR_PRIORIDAD_CSS = { P1: COLOR.verde, P2: COLOR.teal, P3: COLOR.amarillo, P4: "#78908F" } as const;
+export const COLOR_PAR: Record<EstadoPar, string> = { COMPATIBLE: COLOR.verde, CONDICIONADO: COLOR.amarillo, DESCARTADO: "#3A3A40" };
+export const COLOR_PRIORIDAD_CSS = { P1: COLOR.verde, P2: COLOR.teal, P3: COLOR.naranja, P4: "#828288" } as const;
 
 export function Radar({ puntajes, tamano = 220 }: { puntajes: Record<Criterio8, number>; tamano?: number }) {
   const ejes = Object.keys(PESOS) as Criterio8[];
@@ -36,7 +36,7 @@ export function Radar({ puntajes, tamano = 220 }: { puntajes: Record<Criterio8, 
           </g>
         );
       })}
-      <polygon points={poligono} fill="rgba(0,174,192,0.28)" stroke={COLOR.teal} strokeWidth={2} className="transition-all duration-500" />
+      <polygon points={poligono} fill="rgba(255,176,0,0.28)" stroke={COLOR.teal} strokeWidth={2} className="transition-all duration-500" />
       {ejes.map((k, i) => {
         const [x, y] = punto(i, puntajes[k]);
         return <circle key={k} cx={x} cy={y} r={3} fill={COLOR.lima} />;
@@ -51,15 +51,15 @@ export function Barras({ filas, formato, maximo }: { filas: Array<{ id: string; 
     <ul className="flex flex-col gap-1.5">
       {filas.map((f) => (
         <li key={f.id}>
-          <button type="button" onClick={f.onClick} disabled={!f.onClick} className={`w-full rounded-md px-1.5 py-1 text-left transition ${f.resaltar ? "bg-white/10 ring-1 ring-[#CFE84E]/70" : f.onClick ? "hover:bg-white/5" : ""}`}>
+          <button type="button" onClick={f.onClick} disabled={!f.onClick} className={`w-full rounded-[2px] px-1.5 py-1 text-left transition ${f.resaltar ? "bg-white/10 ring-1 ring-[#FFE14D]/70" : f.onClick ? "hover:bg-white/5" : ""}`}>
             <span className="flex items-baseline justify-between gap-2 text-[11px]">
-              <span className={f.resaltar ? "font-semibold text-white" : "text-[#C9DADD]"}>{f.etiqueta}</span>
+              <span className={f.resaltar ? "font-semibold text-white" : "text-[#C8C8CC]"}>{f.etiqueta}</span>
               <span className="cifra-tabular text-white">{formato(f.valor)}</span>
             </span>
             <span className="mt-1 block h-1.5 rounded-full bg-white/10">
               <span className="block h-1.5 rounded-full transition-all duration-500" style={{ width: `${Math.max(2, (Math.max(0, f.valor) / max) * 100)}%`, background: f.color }} />
             </span>
-            {f.nota ? <span className="mt-0.5 block text-[10px] text-[#8CA8AD]">{f.nota}</span> : null}
+            {f.nota ? <span className="mt-0.5 block text-[10px] text-[#9B9BA1]">{f.nota}</span> : null}
           </button>
         </li>
       ))}
@@ -77,7 +77,7 @@ export function MatrizCruce({ pares, seleccion, onSel }: { pares: Par[]; selecci
           <tr>
             <th />
             {DEMANDAS.map((d) => (
-              <th key={d.id} className="font-semibold text-[#60A5FA]" title={d.nombre}>
+              <th key={d.id} className="font-semibold text-[#5AC8FA]" title={d.nombre}>
                 {d.id}
               </th>
             ))}
@@ -141,8 +141,8 @@ export function MatrizPrioridad({ cartera, seleccion, onSel }: { cartera: Oportu
     return pts.map(([x, y]) => `${px(x)},${py(y)}`).join(" ");
   };
   const franjas = [
-    { corte: 0, t: "P4 · Evaluar después", c: "#78908F", lx: 2.05, ly: 2.05 },
-    { corte: 2.8, t: "P3 · Mantener", c: COLOR.amarillo, lx: 2.05, ly: 3.75 },
+    { corte: 0, t: "P4 · Evaluar después", c: "#828288", lx: 2.05, ly: 2.05 },
+    { corte: 2.8, t: "P3 · Mantener", c: COLOR.naranja, lx: 2.05, ly: 3.75 },
     { corte: 3.5, t: "P2 · Prefactibilidad", c: COLOR.teal, lx: 2.6, ly: 4.65 },
     { corte: 4.2, t: "P1 · Piloto prioritario", c: COLOR.verde, lx: 3.62, ly: 5.0 },
   ];
@@ -164,7 +164,7 @@ export function MatrizPrioridad({ cartera, seleccion, onSel }: { cartera: Oportu
         return (
           <g key={o.codigo} onClick={() => onSel(id)} className="cursor-pointer">
             <circle cx={cx} cy={cy} r={sel ? 6.5 : 3.5 + Math.min(3, o.qUtil * 0.6)} fill={COLOR_PRIORIDAD_CSS[o.prioridad]} fillOpacity={0.92} stroke="#fff" strokeWidth={sel ? 1.8 : 0.6} />
-            <text x={cx} y={cy + 2.2} fontSize={5.5} fill="#051417" fontWeight={700} textAnchor="middle">
+            <text x={cx} y={cy + 2.2} fontSize={5.5} fill="#0A0A0B" fontWeight={700} textAnchor="middle">
               {Number(o.codigo.slice(3))}
             </text>
           </g>
@@ -177,6 +177,68 @@ export function MatrizPrioridad({ cartera, seleccion, onSel }: { cartera: Oportu
         Valor económico →
       </text>
     </svg>
+  );
+}
+
+/**
+ * Flujo de caja acumulado de la refinería por modelo de negocio (años 0–5).
+ * El modelo elegido se resalta; los demás quedan de fondo y se pueden tocar.
+ */
+export function FlujoCaja({ series, seleccion, onSel }: { series: Array<{ id: string; nombre: string; valores: number[] }>; seleccion: string; onSel: (id: string) => void }) {
+  const todos = series.flatMap((s) => s.valores);
+  const min = Math.min(0, ...todos);
+  const max = Math.max(...todos, 1);
+  const X0 = 34, X1 = 214, Y0 = 8, Y1 = 128;
+  const px = (anio: number) => X0 + (anio / 5) * (X1 - X0);
+  const py = (v: number) => Y1 - ((v - min) / (max - min)) * (Y1 - Y0);
+  const millones = (v: number) => `${num(v / 1e6, Math.abs(v) < 1e6 ? 1 : 0)}`;
+  const orden = [...series].sort((a, b) => (a.id === seleccion ? 1 : b.id === seleccion ? -1 : 0));
+  const elegida = series.find((s) => s.id === seleccion);
+  return (
+    <div className="flex flex-col gap-2">
+      <svg viewBox="0 0 222 146" className="w-full" role="img" aria-label="Flujo de caja acumulado por modelo">
+        {[min, 0, max].map((v, i) => (
+          <g key={i}>
+            <line x1={X0} x2={X1} y1={py(v)} y2={py(v)} stroke={v === 0 ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.08)"} strokeDasharray={v === 0 ? undefined : "2 3"} />
+            <text x={X0 - 4} y={py(v) + 3} fontSize={7} fill={COLOR.texto2} textAnchor="end">
+              {millones(v)}
+            </text>
+          </g>
+        ))}
+        {[0, 1, 2, 3, 4, 5].map((a) => (
+          <text key={a} x={px(a)} y={140} fontSize={7} fill={COLOR.texto3} textAnchor="middle">
+            año {a}
+          </text>
+        ))}
+        <text x={4} y={py(max) + 3} fontSize={6.5} fill={COLOR.texto3}>
+          USD M
+        </text>
+        {orden.map((s) => {
+          const sel = s.id === seleccion;
+          const puntos = s.valores.map((v, a) => `${px(a)},${py(v)}`).join(" ");
+          return (
+            <g key={s.id} onClick={() => onSel(s.id)} className="cursor-pointer">
+              {/* Trazo ancho e invisible para que la curva sea fácil de tocar. */}
+              <polyline points={puntos} fill="none" stroke="transparent" strokeWidth={9} />
+              <polyline points={puntos} fill="none" stroke={sel ? COLOR.lima : "rgba(237,237,237,0.28)"} strokeWidth={sel ? 2.4 : 1} className="transition-all duration-300" />
+              {sel ? s.valores.map((v, a) => <rect key={a} x={px(a) - 2} y={py(v) - 2} width={4} height={4} fill={COLOR.lima} />) : null}
+            </g>
+          );
+        })}
+        {elegida ? (
+          <text x={X1} y={py(elegida.valores[5]!) - 5} fontSize={7.5} fill={COLOR.lima} textAnchor="end" fontWeight={700}>
+            {elegida.nombre} · {millones(elegida.valores[5]!)} M
+          </text>
+        ) : null}
+      </svg>
+      <div className="flex flex-wrap gap-1">
+        {series.map((s) => (
+          <button key={s.id} type="button" onClick={() => onSel(s.id)} className={`hud border px-1.5 py-0.5 text-[9px] ${s.id === seleccion ? "border-[#FFE14D] text-[#FFE14D]" : "border-white/15 text-[#9B9BA1] hover:text-white"}`}>
+            {s.nombre}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

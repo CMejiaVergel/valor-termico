@@ -1,23 +1,32 @@
 @import "tailwindcss";
 
-/* Identidad Calor Rescatado (colores del prototipo v1). Las variables de fuente
-   (--font-titulos, --font-texto, --font-mono) las pone next/font en <body>. */
+/* Calor Rescatado · identidad de cámara termográfica: grafito, escala ironbow,
+   tipografía técnica (JetBrains Mono en titulares y HUD, IBM Plex Sans en texto).
+   Las variables de fuente (--font-titulos, --font-texto, --font-mono) las pone next/font. */
 :root {
   color-scheme: dark;
+  --hud: rgba(237, 237, 237, 0.55);
+  --hud-tenue: rgba(237, 237, 237, 0.18);
+  --ambar: #ffb000;
+  --caliente: #ff5a1f;
+  --frio: #5ac8fa;
+  --seleccion: #ffe14d;
+  --ironbow: linear-gradient(90deg, #3c5adc, #8c32b4, #e1376e, #ff6e1e, #ffc32d, #fffad7);
 }
 
 html,
 body {
-  background: #051417;
-  color: #e0f0f2;
+  background: #0a0a0b;
+  color: #ededed;
   font-family: var(--font-texto), "IBM Plex Sans", system-ui, sans-serif;
 }
 
 h1,
 h2,
-h3 {
-  font-family: var(--font-titulos), Georgia, serif;
-  letter-spacing: -0.01em;
+h3,
+.titular {
+  font-family: var(--font-titulos), "JetBrains Mono", monospace;
+  letter-spacing: -0.02em;
 }
 
 .cifra-tabular {
@@ -25,122 +34,194 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 
+.hud {
+  font-family: var(--font-titulos), "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
 .vt-degradado {
-  background: linear-gradient(90deg, #00aec0, #cfe84e);
+  background: var(--ironbow);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.vt-resplandor {
-  background:
-    radial-gradient(ellipse 60% 45% at 50% 30%, rgba(255, 138, 61, 0.12), transparent 70%),
-    radial-gradient(ellipse 50% 40% at 50% 85%, rgba(0, 174, 192, 0.1), transparent 70%);
+/* Marco con esquinas de visor (sin cajas de vidrio): fondo sólido casi negro.
+   En la capa de componentes para que las utilidades (absolute, etc.) manden. */
+@layer components {
+  .visor {
+    position: relative;
+    background: rgba(10, 10, 11, 0.9);
+    border: 1px solid var(--hud-tenue);
+  }
+  .visor::before,
+  .visor::after {
+    content: "";
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-color: var(--ambar);
+    border-style: solid;
+    pointer-events: none;
+  }
+  .visor::before {
+    top: -1px;
+    left: -1px;
+    border-width: 2px 0 0 2px;
+  }
+  .visor::after {
+    bottom: -1px;
+    right: -1px;
+    border-width: 0 2px 2px 0;
+  }
 }
 
-/* Etiquetas de fuentes y demandas sobre el mapa (marcadores HTML, fondo sólido: sin backdrop-filter). */
-.vt-etiqueta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 3px 8px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(5, 20, 23, 0.92);
-  color: #fff;
-  line-height: 1.15;
-  white-space: nowrap;
+/* Retículas de fuentes y demandas sobre el mapa (marcadores HTML). */
+.vt-mira {
+  position: relative;
+  width: 26px;
+  height: 26px;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  transition: opacity 0.3s;
+  background: none;
+  border: 0;
+  padding: 0;
 }
-.vt-etiqueta strong {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
+.vt-mira__cruz {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid currentColor;
 }
-.vt-etiqueta em {
+.vt-mira__cruz::before,
+.vt-mira__cruz::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+.vt-mira__cruz::before {
+  left: 50%;
+  top: -7px;
+  bottom: -7px;
+  width: 1.5px;
+  transform: translateX(-50%);
+}
+.vt-mira__cruz::after {
+  top: 50%;
+  left: -7px;
+  right: -7px;
+  height: 1.5px;
+  transform: translateY(-50%);
+}
+.vt-mira--fuente {
+  color: #ff8a3d;
+}
+.vt-mira--fuente .vt-mira__cruz {
+  border-radius: 0;
+}
+.vt-mira--demanda {
+  color: var(--frio);
+}
+.vt-mira--demanda .vt-mira__cruz {
+  border-radius: 50%;
+}
+.vt-mira__lectura {
+  position: absolute;
+  left: 22px;
+  top: -20px;
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 6px;
+  align-items: baseline;
+  padding: 2px 6px;
+  background: rgba(10, 10, 11, 0.88);
+  border-left: 2px solid currentColor;
+  white-space: nowrap;
+  text-align: left;
+  font-family: var(--font-titulos), monospace;
+  pointer-events: none;
+}
+.vt-mira__lectura i {
   font-style: normal;
-  font-family: var(--font-mono), monospace;
   font-size: 10px;
-  padding: 0 4px;
-  border-radius: 4px;
-  color: #051417;
+  color: #9b9ba1;
 }
-.vt-etiqueta span {
-  font-size: 9.5px;
-  color: #8ca8ad;
+.vt-mira__lectura b {
+  font-size: 12px;
+  font-weight: 700;
+  color: currentColor;
 }
-.vt-etiqueta--fuente {
-  border-color: rgba(255, 138, 61, 0.75);
+.vt-mira__lectura small {
+  grid-column: 1 / -1;
+  display: none;
+  font-family: var(--font-texto), sans-serif;
+  font-size: 10.5px;
+  color: #d0d0d4;
 }
-.vt-etiqueta--fuente em {
-  background: #ff8a3d;
+.vt-mira:hover .vt-mira__lectura small,
+.vt-mira[data-foco="1"] .vt-mira__lectura small {
+  display: block;
 }
-.vt-etiqueta--demanda {
-  border-color: rgba(96, 165, 250, 0.75);
+.vt-mira:hover {
+  z-index: 5;
 }
-.vt-etiqueta--demanda em {
-  background: #60a5fa;
+.vt-mira[data-foco="1"] {
+  z-index: 4;
+}
+.vt-mira[data-foco="1"] .vt-mira__cruz {
+  border-color: var(--seleccion);
+  box-shadow: 0 0 0 3px rgba(255, 225, 77, 0.25);
+}
+.vt-mira[data-compacta="1"] .vt-mira__lectura b {
+  display: none;
 }
 /* Mapbox escribe opacity y transform en línea sobre el marcador: se oculta con visibility. */
-.vt-etiqueta[data-visible="0"] {
+.vt-mira[data-visible="0"] {
   visibility: hidden !important;
   pointer-events: none;
 }
-/* La línea de detalle solo en foco o al pasar el mouse: menos ruido sobre el mapa. */
-.vt-etiqueta span {
-  display: none;
-}
-.vt-etiqueta:hover span,
-.vt-etiqueta[data-foco="1"] span {
-  display: block;
-}
-.vt-etiqueta:hover {
-  z-index: 5;
-}
-.vt-etiqueta[data-foco="1"] {
-  border-color: #cfe84e;
-  box-shadow: 0 0 0 2px rgba(207, 232, 78, 0.35), 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-.vt-etiqueta[data-foco="1"] strong {
-  font-size: 13px;
-}
 
-/* Nivel de detalle (data-nivel lo pone el bucle de dibujo del mapa). */
-.vt-mapa:not([data-nivel="3"]) .vt-etiqueta {
-  visibility: hidden;
-}
-.vt-mapa:not([data-nivel="1"]) .vt-sitio {
-  visibility: hidden;
-}
-.vt-sitio {
-  display: flex;
-  flex-direction: column;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 174, 192, 0.55);
-  background: rgba(5, 20, 23, 0.9);
-  color: #fff;
-  line-height: 1.15;
+/* Rótulos de las secciones de la planta. */
+.vt-zona {
+  font-family: var(--font-titulos), monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(237, 237, 237, 0.62);
   white-space: nowrap;
   pointer-events: none;
+  text-shadow: 0 1px 3px #000;
 }
-.vt-sitio strong {
-  font-size: 12px;
+
+/* Barrido de escaneo de la intro. */
+@keyframes vt-barrido {
+  from {
+    transform: translateY(-10vh);
+  }
+  to {
+    transform: translateY(110vh);
+  }
 }
-.vt-sitio span {
-  font-size: 10px;
-  color: #8ca8ad;
+.vt-barrido {
+  animation: vt-barrido 1.4s cubic-bezier(0.6, 0, 0.3, 1) forwards;
 }
-.vt-sitio--piloto {
-  border-color: rgba(255, 138, 61, 0.9);
+@keyframes vt-revelar {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
 }
-.vt-sitio--piloto span {
-  color: #ff8a3d;
+.vt-revelar {
+  animation: vt-revelar 1.4s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+@keyframes vt-parpadeo {
+  50% {
+    opacity: 0.25;
+  }
+}
+.vt-parpadeo {
+  animation: vt-parpadeo 1.2s steps(2) infinite;
 }
 
 /* Progreso del paso en la presentación automática (CSS, sin renders de React). */
@@ -161,42 +242,51 @@ h3 {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #00aec0, #cfe84e);
+  height: 3px;
+  background: var(--ironbow);
   outline: none;
 }
 .vt-rango::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #00aec0;
+  width: 12px;
+  height: 16px;
+  background: #ededed;
+  border: 2px solid #0a0a0b;
   cursor: pointer;
 }
 .vt-rango::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #00aec0;
+  width: 12px;
+  height: 16px;
+  background: #ededed;
+  border: 2px solid #0a0a0b;
+  border-radius: 0;
   cursor: pointer;
+}
+
+/* Escala de Mapbox con la estética del HUD. */
+.vt-mapa .mapboxgl-ctrl-scale {
+  background: rgba(10, 10, 11, 0.8);
+  border-color: var(--hud);
+  color: #ededed;
+  font-family: var(--font-titulos), monospace;
+  font-size: 10px;
 }
 
 /* Celular. */
 @media (max-width: 767px) {
-  .vt-mapa .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group {
-    display: none;
+  .vt-mira {
+    width: 20px;
+    height: 20px;
   }
-  .vt-etiqueta {
-    padding: 2px 6px;
+  .vt-mira__lectura {
+    left: 16px;
+    top: -16px;
   }
-  .vt-etiqueta strong {
-    font-size: 9.5px;
+  .vt-mira__lectura small {
+    display: none !important;
   }
-  .vt-etiqueta span {
-    display: none;
+  .vt-zona {
+    font-size: 8px;
   }
 }
 .vt-tarjeta-movil {
@@ -209,18 +299,18 @@ h3 {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .vt-tarjeta-movil {
+  .vt-tarjeta-movil,
+  .vt-barrido,
+  .vt-revelar {
     animation: none;
   }
 }
 
-/* Paneles con scroll fino. */
 aside::-webkit-scrollbar,
-nav::-webkit-scrollbar {
-  width: 6px;
+section::-webkit-scrollbar {
+  width: 5px;
 }
 aside::-webkit-scrollbar-thumb,
-nav::-webkit-scrollbar-thumb {
+section::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
 }

@@ -14,6 +14,7 @@ import {
   MODELOS,
   PESOS,
   PRECIO_RELATIVO,
+  RACKS,
   TECNOLOGIAS,
   type Ajuste,
   type Criterio8,
@@ -52,6 +53,33 @@ export function distanciaM(a: { lng: number; lat: number }, b: { lng: number; la
   const dx = (a.lng - b.lng) * M_POR_GRADO * Math.cos((a.lat * Math.PI) / 180);
   const dy = (a.lat - b.lat) * M_POR_GRADO;
   return Math.hypot(dx, dy);
+}
+
+/**
+ * Tubería propuesta entre dos puntos: sale de la fuente en línea recta hasta el
+ * rack este–oeste más conveniente, lo recorre y baja recta hasta la demanda
+ * (trazado ortogonal, como se tiende tubería en una planta).
+ */
+export function rutaTuberia(a: { lng: number; lat: number }, b: { lng: number; lat: number }, desplazamientoM = 0): { puntos: Array<[number, number]>; metros: number } {
+  const dLat = desplazamientoM / 111_320;
+  const rack = RACKS.horizontales.reduce((mejor, r) => (Math.abs(a.lat - r) + Math.abs(b.lat - r) < Math.abs(a.lat - mejor) + Math.abs(b.lat - mejor) ? r : mejor), RACKS.horizontales[0]!) + dLat;
+  // Dentro de la misma sección (salto corto) la tubería va directa en escuadra, sin subir al rack.
+  const directo = distanciaM(a, { lng: b.lng, lat: a.lat }) + distanciaM({ lng: b.lng, lat: a.lat }, b) <= 160;
+  const puntos: Array<[number, number]> = directo
+    ? [
+        [a.lng, a.lat],
+        [b.lng, a.lat],
+        [b.lng, b.lat],
+      ]
+    : [
+        [a.lng, a.lat],
+        [a.lng, rack],
+        [b.lng, rack],
+        [b.lng, b.lat],
+      ];
+  let metros = 0;
+  for (let i = 1; i < puntos.length; i++) metros += distanciaM({ lng: puntos[i - 1]![0], lat: puntos[i - 1]![1] }, { lng: puntos[i]![0], lat: puntos[i]![1] });
+  return { puntos, metros };
 }
 
 export const fuente = (id: string) => FUENTES.find((f) => f.id === id)!;
@@ -102,7 +130,7 @@ const pct = (x: number) => `${Math.round(x * 100)} %`;
 /** Cruce de un par con sus cinco criterios. */
 export function cruzar(f: Fuente, d: Demanda, eficiencia = 0.6): Par {
   const mt = mejorTecnologia(f, d);
-  const distancia = distanciaM(f, d);
+  const distancia = rutaTuberia(f, d).metros;
   const criterios: CriterioPar[] = [];
   criterios.push(
     mt
@@ -128,8 +156,8 @@ export function cruzar(f: Fuente, d: Demanda, eficiencia = 0.6): Par {
   criterios.push({
     codigo: "C4",
     nombre: "Distancia",
-    estado: distancia <= 500 ? "CUMPLE" : distancia <= 1200 ? "CONDICION" : "INCUMPLE",
-    nota: `${Math.round(distancia)} m de tubería aislada${distancia > 1200 ? ": pérdidas y costo excesivos" : ""}`,
+    estado: distancia <= 600 ? "CUMPLE" : distancia <= 1300 ? "CONDICION" : "INCUMPLE",
+    nota: `${Math.round(distancia)} m de tubería por rack${distancia > 1300 ? ": pérdidas y costo excesivos" : ""}`,
   });
   criterios.push({
     codigo: "C5",
@@ -195,7 +223,7 @@ const escala = (v: number, cortes: number[]) => {
 
 export function evaluar(f: Fuente, d: Demanda, t: Tecnologia, m: ModeloNegocio, s: Supuestos): Evaluacion {
   const ajuste = ajusteTecnologia(t, f, d);
-  const distancia = distanciaM(f, d);
+  const distancia = rutaTuberia(f, d).metros;
   const qUtil = ajuste ? Math.min(f.potencia * s.eficiencia * t.factor, d.potencia) : 0;
   const qAprovechado = qUtil / t.factor;
   const energiaMWh = qUtil * s.horas;

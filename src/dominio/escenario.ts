@@ -6,7 +6,41 @@
 export type Origen = "MEDIDO" | "DECLARADO" | "ESTIMADO";
 export type Continuidad = "Alta" | "Media" | "Variable";
 export type TipoDemanda = "CALOR" | "FRIO" | "ELECTRICIDAD";
-export type Zona = "Utilities" | "Destilación" | "Conversión" | "Enfriamiento" | "Servicios";
+
+/**
+ * Posiciones dibujadas sobre la imagen satelital de referencia de la refinería
+ * (Mapbox satellite-v9, centro −75,4915 / 10,3135, zoom 15,4, 1280×900 px):
+ * cada punto se ubica en píxeles de esa imagen y se convierte a coordenadas.
+ * Así fuentes, demandas y racks caen dentro de las secciones reales de la planta.
+ * La asignación de cada sección a un proceso es ILUSTRATIVA.
+ */
+const PX = (x: number, y: number) => ({ lng: -75.4915 + (x - 640) * 1.626e-5, lat: 10.3135 + (450 - y) * 1.611e-5 });
+const poligonoPx = (x0: number, y0: number, x1: number, y1: number): Array<[number, number]> =>
+  [PX(x0, y0), PX(x1, y0), PX(x1, y1), PX(x0, y1)].map((p) => [p.lng, p.lat]);
+
+export type Zona = "Conversión" | "Destilación" | "Hidroprocesos" | "Hidrotratamiento e H₂" | "Servicios industriales" | "Tratamiento de aguas" | "Administración" | "Patio de tanques";
+
+/** Secciones de la planta (contorno sobre el satélite). */
+export const ZONAS: Array<{ nombre: Zona; poligono: Array<[number, number]>; etiqueta: { lng: number; lat: number } }> = [
+  { nombre: "Conversión", poligono: poligonoPx(505, 282, 640, 435), etiqueta: PX(512, 292) },
+  { nombre: "Destilación", poligono: poligonoPx(648, 286, 828, 435), etiqueta: PX(655, 296) },
+  { nombre: "Hidroprocesos", poligono: poligonoPx(840, 286, 972, 435), etiqueta: PX(847, 296) },
+  { nombre: "Hidrotratamiento e H₂", poligono: poligonoPx(585, 448, 800, 562), etiqueta: PX(592, 458) },
+  { nombre: "Servicios industriales", poligono: poligonoPx(690, 575, 915, 668), etiqueta: PX(697, 585) },
+  { nombre: "Tratamiento de aguas", poligono: poligonoPx(432, 568, 682, 660), etiqueta: PX(439, 578) },
+  { nombre: "Administración", poligono: poligonoPx(915, 560, 1110, 650), etiqueta: PX(922, 570) },
+  { nombre: "Patio de tanques", poligono: poligonoPx(350, 20, 1180, 240), etiqueta: PX(360, 30) },
+];
+
+/** Racks de tubería principales (latitud de los tramos este–oeste y longitud de los norte–sur). */
+export const RACKS = {
+  /** Este–oeste: rack principal (y 438), vía central (y 566) y vía sur (y 668). */
+  horizontales: [438, 566, 668].map((y) => PX(0, y).lat),
+  /** Norte–sur: (x 575) y rack central (x 832). */
+  verticales: [575, 832].map((x) => PX(x, 0).lng),
+  /** Extremos de los racks para dibujarlos. */
+  limites: { oeste: PX(380, 0).lng, este: PX(1110, 0).lng, norte: PX(0, 240).lat, sur: PX(0, 668).lat },
+};
 
 export interface Fuente {
   id: string;
@@ -40,24 +74,24 @@ export interface Demanda {
 }
 
 export const FUENTES: Fuente[] = [
-  { id: "F1", nombre: "Vapor LP excedente", tipo: "Vapor", tMin: 120, tMax: 180, potencia: 12, continuidad: "Alta", ubicacion: "Calderas / utilities", zona: "Utilities", origen: "DECLARADO", lng: -75.4991, lat: 10.3182 },
-  { id: "F2", nombre: "Condensado caliente", tipo: "Líquido", tMin: 80, tMax: 110, potencia: 6, continuidad: "Alta", ubicacion: "Retorno de condensado", zona: "Utilities", origen: "DECLARADO", lng: -75.4993, lat: 10.3168 },
-  { id: "F3", nombre: "Gases calientes FCC", tipo: "Gas", tMin: 180, tMax: 300, potencia: 15, continuidad: "Media", ubicacion: "Craqueo catalítico (FCC)", zona: "Conversión", origen: "ESTIMADO", lng: -75.4953, lat: 10.3168 },
-  { id: "F4", nombre: "Agua de enfriamiento", tipo: "Agua", tMin: 35, tMax: 55, potencia: 20, continuidad: "Alta", ubicacion: "Torres de enfriamiento", zona: "Enfriamiento", origen: "DECLARADO", lng: -75.492, lat: 10.3186 },
-  { id: "F5", nombre: "Purgas de vapor", tipo: "Vapor", tMin: 100, tMax: 160, potencia: 3, continuidad: "Variable", ubicacion: "Red de vapor", zona: "Utilities", origen: "ESTIMADO", lng: -75.4985, lat: 10.3182 },
-  { id: "F6", nombre: "Corriente líquida caliente", tipo: "Líquido", tMin: 100, tMax: 150, potencia: 10, continuidad: "Alta", ubicacion: "Unidad de crudo (CDU)", zona: "Destilación", origen: "DECLARADO", lng: -75.4979, lat: 10.3162 },
-  { id: "F7", nombre: "Calor de compresores", tipo: "Aire / agua", tMin: 60, tMax: 90, potencia: 4, continuidad: "Alta", ubicacion: "Servicios industriales", zona: "Servicios", origen: "DECLARADO", lng: -75.499, lat: 10.3135 },
-  { id: "F8", nombre: "Calor disperso viscorreducción", tipo: "Mixto", tMin: 40, tMax: 80, potencia: 8, continuidad: "Variable", ubicacion: "Viscorreducción", zona: "Conversión", origen: "ESTIMADO", lng: -75.4945, lat: 10.3164 },
+  { id: "F1", nombre: "Vapor LP excedente", tipo: "Vapor", tMin: 120, tMax: 180, potencia: 12, continuidad: "Alta", ubicacion: "Calderas", zona: "Servicios industriales", origen: "DECLARADO", ...PX(742, 610) },
+  { id: "F2", nombre: "Condensado caliente", tipo: "Líquido", tMin: 80, tMax: 110, potencia: 6, continuidad: "Alta", ubicacion: "Retorno de condensado", zona: "Hidrotratamiento e H₂", origen: "DECLARADO", ...PX(640, 515) },
+  { id: "F3", nombre: "Gases calientes FCC", tipo: "Gas", tMin: 180, tMax: 300, potencia: 15, continuidad: "Media", ubicacion: "Craqueo catalítico (FCC)", zona: "Conversión", origen: "ESTIMADO", ...PX(560, 335) },
+  { id: "F4", nombre: "Agua de enfriamiento", tipo: "Agua", tMin: 35, tMax: 55, potencia: 20, continuidad: "Alta", ubicacion: "Torres de enfriamiento", zona: "Servicios industriales", origen: "DECLARADO", ...PX(866, 632) },
+  { id: "F5", nombre: "Purgas de vapor", tipo: "Vapor", tMin: 100, tMax: 160, potencia: 3, continuidad: "Variable", ubicacion: "Red de vapor", zona: "Servicios industriales", origen: "ESTIMADO", ...PX(796, 642) },
+  { id: "F6", nombre: "Corriente líquida caliente", tipo: "Líquido", tMin: 100, tMax: 150, potencia: 10, continuidad: "Alta", ubicacion: "Unidad de crudo (CDU)", zona: "Destilación", origen: "DECLARADO", ...PX(690, 355) },
+  { id: "F7", nombre: "Calor de compresores", tipo: "Aire / agua", tMin: 60, tMax: 90, potencia: 4, continuidad: "Alta", ubicacion: "Compresores de hidrógeno", zona: "Hidrotratamiento e H₂", origen: "DECLARADO", ...PX(765, 500) },
+  { id: "F8", nombre: "Calor disperso viscorreducción", tipo: "Mixto", tMin: 40, tMax: 80, potencia: 8, continuidad: "Variable", ubicacion: "Viscorreducción", zona: "Conversión", origen: "ESTIMADO", ...PX(612, 410) },
 ];
 
 export const DEMANDAS: Demanda[] = [
-  { id: "D1", nombre: "Agua helada de edificios", tipo: "FRIO", tReq: 10, rango: "7–12 °C", potencia: 2, ubicacion: "Edificio administrativo", origen: "DECLARADO", lng: -75.501, lat: 10.3125 },
-  { id: "D2", nombre: "Salas de control", tipo: "FRIO", tReq: 10, rango: "7–12 °C", potencia: 1, ubicacion: "Unidad de crudo (CDU)", origen: "DECLARADO", lng: -75.4972, lat: 10.3166 },
-  { id: "D3", nombre: "Subestaciones", tipo: "FRIO", tReq: 21, rango: "18–24 °C", potencia: 0.8, ubicacion: "Subestación eléctrica", origen: "ESTIMADO", lng: -75.4924, lat: 10.3135 },
-  { id: "D4", nombre: "Precalentamiento de agua", tipo: "CALOR", tReq: 75, rango: "60–90 °C", potencia: 4, ubicacion: "Calderas", origen: "DECLARADO", lng: -75.4998, lat: 10.3186 },
-  { id: "D5", nombre: "Corriente fría de proceso", tipo: "CALOR", tReq: 125, rango: "100–150 °C", potencia: 8, ubicacion: "Unidad de crudo (CDU)", origen: "DECLARADO", lng: -75.4974, lat: 10.3156 },
-  { id: "D6", nombre: "Electricidad auxiliar", tipo: "ELECTRICIDAD", tReq: 150, rango: "> 150 °C", potencia: 1, ubicacion: "Servicios industriales", origen: "DECLARADO", lng: -75.4996, lat: 10.3131 },
-  { id: "D7", nombre: "Confort terminal marítimo", tipo: "FRIO", tReq: 10, rango: "7–12 °C", potencia: 1.5, ubicacion: "Terminal marítimo", origen: "ESTIMADO", lng: -75.4912, lat: 10.3145 },
+  { id: "D1", nombre: "Agua helada de edificios", tipo: "FRIO", tReq: 10, rango: "7–12 °C", potencia: 2, ubicacion: "Edificio administrativo", origen: "DECLARADO", ...PX(952, 598) },
+  { id: "D2", nombre: "Salas de control", tipo: "FRIO", tReq: 10, rango: "7–12 °C", potencia: 1, ubicacion: "Unidad de crudo (CDU)", origen: "DECLARADO", ...PX(806, 405) },
+  { id: "D3", nombre: "Subestación eléctrica", tipo: "FRIO", tReq: 21, rango: "18–24 °C", potencia: 0.8, ubicacion: "Subestación principal", origen: "ESTIMADO", ...PX(1046, 505) },
+  { id: "D4", nombre: "Precalentamiento de agua", tipo: "CALOR", tReq: 75, rango: "60–90 °C", potencia: 4, ubicacion: "Agua de alimentación de calderas", origen: "DECLARADO", ...PX(712, 645) },
+  { id: "D5", nombre: "Corriente fría de proceso", tipo: "CALOR", tReq: 125, rango: "100–150 °C", potencia: 8, ubicacion: "Unidad de crudo (CDU)", origen: "DECLARADO", ...PX(768, 322) },
+  { id: "D6", nombre: "Electricidad auxiliar", tipo: "ELECTRICIDAD", tReq: 150, rango: "> 150 °C", potencia: 1, ubicacion: "Servicios de hidroprocesos", origen: "DECLARADO", ...PX(905, 368) },
+  { id: "D7", nombre: "Climatización de laboratorio", tipo: "FRIO", tReq: 10, rango: "7–12 °C", potencia: 1.5, ubicacion: "Laboratorio y talleres", origen: "ESTIMADO", ...PX(1012, 618) },
 ];
 
 export type Ajuste = "Alta" | "Media" | "Baja";
@@ -151,24 +185,6 @@ export const GAS_M3_POR_MWH = 95;
 /** Oportunidad protagonista del recorrido. */
 export const OPORTUNIDAD_INICIAL = { fuente: "F1", demanda: "D4", tecnologia: "T1", modelo: "M2" } as const;
 
-/** Unidades de proceso (volúmenes de la vista 3D). Altura en metros. */
-export const UNIDADES: Array<{ nombre: string; altura: number; color: [number, number, number]; poligono: Array<[number, number]> }> = [
-  { nombre: "Calderas", altura: 18, color: [14, 58, 66], poligono: [[-75.5, 10.319], [-75.4985, 10.319], [-75.4985, 10.318], [-75.5, 10.318]] },
-  { nombre: "Destilación atmosférica (CDU)", altura: 25, color: [26, 46, 56], poligono: [[-75.4983, 10.3173], [-75.4963, 10.3173], [-75.4963, 10.316], [-75.4983, 10.316]] },
-  { nombre: "Destilación al vacío (VDU)", altura: 22, color: [30, 50, 64], poligono: [[-75.4983, 10.3158], [-75.4968, 10.3158], [-75.4968, 10.3148], [-75.4983, 10.3148]] },
-  { nombre: "FCC", altura: 28, color: [62, 30, 24], poligono: [[-75.496, 10.3178], [-75.4945, 10.3178], [-75.4945, 10.3165], [-75.496, 10.3165]] },
-  { nombre: "Hidrocraqueo", altura: 26, color: [46, 34, 56], poligono: [[-75.4943, 10.3175], [-75.493, 10.3175], [-75.493, 10.3164], [-75.4943, 10.3164]] },
-  { nombre: "Coquización", altura: 24, color: [54, 38, 26], poligono: [[-75.496, 10.3163], [-75.4947, 10.3163], [-75.4947, 10.3152], [-75.496, 10.3152]] },
-  { nombre: "Torres de enfriamiento", altura: 30, color: [12, 40, 56], poligono: [[-75.4928, 10.3193], [-75.4912, 10.3193], [-75.4912, 10.318], [-75.4928, 10.318]] },
-  { nombre: "Planta de hidrógeno", altura: 18, color: [26, 48, 64], poligono: [[-75.4945, 10.315], [-75.4932, 10.315], [-75.4932, 10.3141], [-75.4945, 10.3141]] },
-  { nombre: "Planta de azufre", altura: 16, color: [42, 40, 48], poligono: [[-75.4965, 10.3148], [-75.495, 10.3148], [-75.495, 10.3139], [-75.4965, 10.3139]] },
-  { nombre: "Hidrotratamiento", altura: 20, color: [30, 46, 56], poligono: [[-75.4965, 10.3138], [-75.4947, 10.3138], [-75.4947, 10.3128], [-75.4965, 10.3128]] },
-  { nombre: "Planta eléctrica", altura: 14, color: [26, 40, 40], poligono: [[-75.493, 10.314], [-75.4918, 10.314], [-75.4918, 10.313], [-75.493, 10.313]] },
-  { nombre: "Administración", altura: 10, color: [24, 40, 48], poligono: [[-75.5018, 10.313], [-75.5005, 10.313], [-75.5005, 10.312], [-75.5018, 10.312]] },
-  { nombre: "Servicios industriales", altura: 14, color: [20, 40, 48], poligono: [[-75.4998, 10.3138], [-75.4983, 10.3138], [-75.4983, 10.3128], [-75.4998, 10.3128]] },
-  { nombre: "Terminal marítimo", altura: 8, color: [22, 36, 40], poligono: [[-75.4918, 10.315], [-75.4905, 10.315], [-75.4905, 10.314], [-75.4918, 10.314]] },
-];
-
 export type IdPaso =
   | "problema"
   | "inventario"
@@ -202,69 +218,69 @@ export interface Paso {
   enfocarOportunidad?: boolean;
 }
 
-// Algo al norte del centro geométrico: con la cámara inclinada la planta queda en el centro de la pantalla.
-const PLANTA = { lng: -75.4962, lat: 10.3166 };
+// Centro de la planta de proceso (sin el patio de tanques). Vista casi cenital, como una cámara térmica.
+const PLANTA = { ...PX(800, 478) };
 
 export const PASOS: Paso[] = [
   {
     id: "problema", etapa: "El problema", titulo: "Calor que se pierde", bajada: "Energía pagada que se va al aire",
     texto: "La refinería quema combustible para producir calor y luego disipa una parte a la atmósfera y al agua de enfriamiento. Ese calor residual ya está pagado, pero hoy nadie lo mide ni lo aprovecha.",
     clave: "Cada megavatio que se pierde es combustible comprado dos veces: una para producirlo y otra para reemplazarlo donde sí se necesita.",
-    camara: { ...PLANTA, zoom: 15.7, pitch: 58, bearing: -18 },
+    camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
   {
-    id: "inventario", etapa: "Diagnóstico", titulo: "Inventario térmico", bajada: "Fuentes y demandas caracterizadas",
-    texto: "Cada fuente se caracteriza por temperatura, potencia, continuidad y ubicación; cada demanda, por la temperatura y la energía que necesita. Naranja: ofrece calor. Azul: lo necesita. La altura es la potencia.",
+    id: "inventario", etapa: "Diagnóstico", titulo: "Inventario térmico", bajada: "Fuentes y demandas, sección por sección",
+    texto: "Cada fuente se ubica en la sección de la planta que la genera y se caracteriza por temperatura, potencia, continuidad y origen del dato. Cada demanda, por la temperatura y la energía que necesita. Retícula caliente: ofrece calor. Retícula fría: lo necesita.",
     clave: "Sin inventario no hay negocio. Cada dato declara su origen: medido, declarado o estimado.",
-    camara: { ...PLANTA, zoom: 16.1, pitch: 60, bearing: 12 },
+    camara: { ...PLANTA, zoom: 16.25, pitch: 20, bearing: 0 },
   },
   {
     id: "termico", etapa: "Diagnóstico", titulo: "Mapa térmico", bajada: "Dónde se concentra el calor",
-    texto: "La plataforma convierte el inventario en un mapa de calor de la planta, como una termografía: los tonos calientes muestran dónde se concentra la energía disponible. Ajuste la intensidad y la paleta en el panel.",
-    clave: "Ver el calor en el plano de la planta convierte un listado técnico en una conversación de negocio.",
-    camara: { ...PLANTA, zoom: 16, pitch: 45, bearing: -5 },
+    texto: "La plataforma convierte el inventario en una termografía de la planta: los tonos más calientes muestran dónde se concentra la energía disponible. Ajuste la paleta y la intensidad en la ficha.",
+    clave: "Ver el calor sobre el plano de la planta convierte un listado técnico en una conversación de negocio.",
+    camara: { ...PLANTA, zoom: 16.15, pitch: 0, bearing: 0 },
   },
   {
     id: "cruce", etapa: "Diagnóstico", titulo: "Cruce fuente–demanda", bajada: "El motor compara todo con todo",
-    texto: "El motor cruza las 8 fuentes con las 7 demandas (56 pares) y verifica cinco criterios: nivel de temperatura, potencia, continuidad, distancia y calidad del dato. Verde: compatible. Ámbar: condicionado. Gris: descartado.",
+    texto: "El motor cruza las 8 fuentes con las 7 demandas (56 pares) por los racks de tubería de la planta y verifica cinco criterios: temperatura, potencia, continuidad, longitud de tubería y calidad del dato. Verde: compatible. Ámbar: condicionado. Los descartados no se trazan.",
     clave: "Las reglas son físicas: el calor solo pasa de mayor a menor temperatura, salvo que una bomba de calor lo eleve.",
-    camara: { ...PLANTA, zoom: 16.15, pitch: 62, bearing: -32 },
+    camara: { ...PLANTA, zoom: 16.25, pitch: 25, bearing: 0 },
   },
   {
     id: "tecnologia", etapa: "Estructuración", titulo: "Tecnología", bajada: "Cómo se aprovecha cada par",
-    texto: "Para cada par compatible, la plataforma propone la tecnología que encaja con el salto de temperatura: intercambiador, bomba de calor, recuperación de condensado, chiller de absorción u ORC. Elija una en el panel.",
+    texto: "Para el par elegido, la plataforma traza la tubería por el rack y propone la tecnología que encaja con el salto de temperatura: intercambiador, bomba de calor, recuperación de condensado, chiller de absorción u ORC.",
     clave: "La misma fuente puede producir calor, frío o electricidad: la tecnología define cuánto vale cada megavatio.",
-    camara: { ...PLANTA, zoom: 17.6, pitch: 66, bearing: -40 }, enfocarOportunidad: true,
+    camara: { ...PLANTA, zoom: 17.7, pitch: 35, bearing: -15 }, enfocarOportunidad: true,
   },
   {
-    id: "modelo", etapa: "Estructuración", titulo: "Modelo de negocio", bajada: "Quién invierte y quién gana",
-    texto: "La misma oportunidad se puede ejecutar con siete modelos. La plataforma compara el beneficio neto de la refinería a 5 años, cuánto invierte y qué riesgo asume el proveedor.",
+    id: "modelo", etapa: "Estructuración", titulo: "Modelo de negocio", bajada: "Cómo paga la refinería",
+    texto: "La misma oportunidad se puede pagar de siete formas. La plataforma compara, año a año, el flujo de caja de la refinería: cuánto invierte, qué parte del ahorro conserva y qué riesgo asume quien ejecuta.",
     clave: "Con un modelo ESCO la refinería no invierte: paga con una parte del ahorro verificado.",
-    camara: { ...PLANTA, zoom: 17.4, pitch: 58, bearing: 25 }, enfocarOportunidad: true,
+    camara: { ...PLANTA, zoom: 17.5, pitch: 30, bearing: 10 }, enfocarOportunidad: true,
   },
   {
     id: "evaluacion", etapa: "Decisión", titulo: "Evaluación", bajada: "Cifras para decidir",
     texto: "Con la tecnología y el modelo elegidos, la plataforma calcula potencia útil, energía anual, ahorro, CAPEX, retorno y CO₂ evitado, y los resume en un puntaje de 8 criterios. Mueva los supuestos y vea el resultado al instante.",
     clave: "El puntaje convierte criterios técnicos y económicos en una sola prioridad comparable entre oportunidades.",
-    camara: { ...PLANTA, zoom: 17.2, pitch: 52, bearing: -8 }, enfocarOportunidad: true,
+    camara: { ...PLANTA, zoom: 17.4, pitch: 25, bearing: 0 }, enfocarOportunidad: true,
   },
   {
     id: "portafolio", etapa: "Decisión", titulo: "Portafolio priorizado", bajada: "Qué hacer primero",
-    texto: "Todas las oportunidades se ubican en una matriz de prioridad: viabilidad técnica contra valor económico. P1 son pilotos prioritarios; P2 pasan a prefactibilidad; P3 y P4 esperan.",
+    texto: "Todas las oportunidades se ubican en una matriz de prioridad: viabilidad técnica contra valor económico. Sus tuberías se trazan por los racks con el color de su prioridad: P1 piloto, P2 prefactibilidad, P3 y P4 en espera.",
     clave: "Un portafolio ordenado le dice a la refinería dónde poner el primer dólar y qué sigue después.",
-    camara: { ...PLANTA, zoom: 16.05, pitch: 60, bearing: 30 },
+    camara: { ...PLANTA, zoom: 16.2, pitch: 15, bearing: 0 },
   },
   {
     id: "monitoreo", etapa: "Ejecución", titulo: "Piloto y monitoreo", bajada: "Medir para verificar",
-    texto: "El piloto se instrumenta con sensórica clamp-on, sin parar el proceso: temperatura y caudal a la entrada y la salida. El tablero compara en tiempo real el calor entregado contra el esperado.",
+    texto: "El piloto se instrumenta con sensórica clamp-on, sin parar el proceso: temperatura y caudal en la salida de la fuente y en la entrada de la demanda. El tablero compara en tiempo real el calor entregado contra el esperado.",
     clave: "Lo que se mide se puede cobrar: el ahorro verificado es la base del pago en un modelo ESCO.",
-    camara: { ...PLANTA, zoom: 18, pitch: 70, bearing: 38 }, enfocarOportunidad: true,
+    camara: { ...PLANTA, zoom: 18.1, pitch: 45, bearing: 20 }, enfocarOportunidad: true,
   },
   {
     id: "impacto", etapa: "Ejecución", titulo: "Impacto", bajada: "Calor rescatado, verificado",
     texto: "Cada mes se emite un reporte de calor rescatado: MWh recuperados, gas natural evitado, ahorro y CO₂, trazable a las mediciones. El portafolio completo multiplica ese impacto en toda la refinería.",
     clave: "Del calor invisible a un activo medible, priorizado y financiable.",
-    camara: { ...PLANTA, zoom: 15.8, pitch: 55, bearing: -12 },
+    camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
 ];
 
