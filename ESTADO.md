@@ -4,7 +4,7 @@
 > Instrucciones generales: `Desktop\VOLTAC_DEV\AGENTS.md`.
 
 ## Resumen
-**Calor Rescatado · Mapa de Oportunidades Térmicas**: vitrina guiada de 10 pasos (Next.js 15 estático + Mapbox +
+**Valor Térmico · Mapa de Oportunidades Térmicas**: vitrina guiada de 10 pasos (Next.js 15 estático + Mapbox +
 deck.gl) que cuenta el servicio (consultoría apoyada en software) sobre la Refinería de Cartagena, del reto (7 PJ)
 al portafolio del piloto y sus escenarios de escala.
 Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídrica. Datos ilustrativos.
@@ -41,11 +41,19 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - 2026-10-24 · Piloto = una sección elegida por la refinería con meta de calor recuperado (1 MW ≈ 1,7 % de la meta
   anual a 8.400 h). Los proyectos se suman hasta la meta; el último se dimensiona a lo que falta; la prioridad se
   calcula con el potencial completo del par. Intermedio = 5 secciones (supuesto); refinería = 58 MW (∝ 7 PJ).
-- 2026-10-24 · Modelo de negocio = cobro por portafolio (% del ahorro anual estimado, sin valor en pantalla). CAPEX,
+- 2026-10-24 (tarde) · Marca: **Valor Térmico**, propuesta por **PDI Advanced**. Cobro: por el portafolio, según el alcance de la
+  sección analizada (tarifa base por sección + valor por fuente caracterizada); se descarta el % del ahorro estimado porque
+  la implementación no depende de nosotros. Paso 10 = escenarios + hoja de ruta del piloto + firmas.
+- 2026-10-24 · (reemplazado) Modelo de negocio = cobro por portafolio (% del ahorro anual estimado). CAPEX,
   ESCO, BOOT… son esquemas de financiamiento del proyecto para la refinería.
 - 2026-10-23 · Factores ilustrativos: CO₂ 0,20 t/MWh calor (gas natural), 0,14 t/MWh eléctrico; 95 m³ de gas por MWh.
 
 ## Bitácora
+### 2026-10-24 (tarde) — Marca Valor Térmico, PDI Advanced, aliados, QR y cobro por alcance
+- Cambio de marca en toda la vitrina; logos en `public/marca/` (entrada, barra superior ≥1536 px y paso 10).
+- QR de ejemplo con isotipo «VT» en `recursos/qr/` (verificado con lector); falta el enlace definitivo.
+- Paso 10: 1 MW según su uso (reúso, frío, electricidad), cobro por alcance y hoja de ruta (lunes 26 oct, meses 1–3, 6–12).
+
 ### 2026-10-24 — Reestructuración: consultoría + software, piloto y fuentes citadas
 - Pasos nuevos: El reto, Datos de la planta, Compatibilidad, Propuestas de la IA (agente simulado y rotulado),
   Financiamiento del proyecto, Portafolio del piloto (sección + meta), Escenarios de escala (cobro por portafolio).
@@ -63,7 +71,7 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - Efecto: piloto USD 1,68 M/año (retorno 0,7 años); portafolio 15 MW y USD 7,9 M/año; el ORC (F3 → D6) sube a P2.
 
 ### 2026-10-24 — Rediseño visual (identidad propia frente a ConfluencIA)
-- Pedido de Voltac: las dos vitrinas van al mismo evento; Calor Rescatado debe verse distinta, con el mapa como protagonista,
+- Pedido de Voltac: las dos vitrinas van al mismo evento; Valor Térmico debe verse distinta, con el mapa como protagonista,
   los puntos dentro de las secciones reales de la planta y la conexión como tubería recta por la planta (no arcos).
 - Dirección elegida: termografía industrial. Satélite `satellite-v9` en gris, calor ironbow, retículas con °C, rótulos de
   sección, racks y tuberías ortogonales (haz por carriles en el cruce), sin columnas 3D, sin vuelo desde el planeta (intro de

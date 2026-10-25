@@ -10,7 +10,7 @@ import { PanelPaso } from "@/componentes/paneles";
 import { BarraMovil, ControlesMovil, TarjetaPaso } from "@/componentes/Movil";
 import { ChipOrigen, Contador, KpiMini, num } from "@/componentes/ui";
 
-// Vitrina de Calor Rescatado con lenguaje de cámara termográfica. El mapa ocupa
+// Vitrina de Valor Térmico con lenguaje de cámara termográfica. El mapa ocupa
 // toda la pantalla y es el protagonista; alrededor, un HUD liviano:
 //   · barra superior delgada (marca, ubicación, controles),
 //   · visor del paso arriba a la izquierda y lecturas debajo,
@@ -271,10 +271,15 @@ export function Vitrina() {
       <header className="hud absolute inset-x-0 top-0 z-10 hidden h-11 items-center justify-between border-b border-white/10 bg-[#0A0A0B]/[0.92] px-4 text-[10px] md:flex">
         <div className="flex items-center gap-4">
           <span className="titular text-sm font-extrabold normal-case tracking-tight text-white">
-            CALOR <span className="vt-degradado">RESCATADO</span>
+            VALOR <span className="vt-degradado">TÉRMICO</span>
           </span>
           <span className="text-[#5E5E66]">//</span>
           <span className="text-[#9B9BA1]">Mapa de oportunidades térmicas</span>
+          <span className="hidden items-center gap-1.5 whitespace-nowrap text-[#5E5E66] 2xl:flex">
+            por
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/marca/pdi-advanced-oscuro.png`} alt="PDI Advanced" className="h-5 w-auto" />
+          </span>
         </div>
         <div className="hidden items-center gap-4 text-[#9B9BA1] lg:flex">
           <span>

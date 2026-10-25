@@ -1,8 +1,8 @@
 {
-  "name": "calor-rescatado-vitrina",
+  "name": "valor-termico-vitrina",
   "version": "0.2.0",
   "private": true,
-  "description": "Calor Rescatado: vitrina guiada del Mapa de Oportunidades Térmicas (Refinería de Cartagena).",
+  "description": "Valor Térmico: vitrina guiada del Mapa de Oportunidades Térmicas (Refinería de Cartagena).",
   "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev -p 3200",

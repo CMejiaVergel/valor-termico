@@ -1,4 +1,4 @@
-// Escenario de la vitrina Calor Rescatado. Todo es ILUSTRATIVO: las fuentes,
+// Escenario de la vitrina Valor Térmico. Todo es ILUSTRATIVO: las fuentes,
 // demandas, ubicaciones y cifras salen del prototipo v1 (referencia/) y de la
 // guía de uso; sirven para contar la mecánica del software, no describen la
 // operación real de la refinería. Toda cifra mostrada declara su origen.
@@ -310,26 +310,26 @@ export const PASOS: Paso[] = [
   },
   {
     id: "termico", etapa: "Diagnóstico", titulo: "Mapa térmico", bajada: "Dónde se concentra el calor",
-    texto: "La plataforma convierte el inventario en una termografía de la planta: los tonos más calientes muestran dónde se concentra la energía disponible. Ajuste la paleta y la intensidad en la ficha.",
+    texto: "La plataforma convierte el inventario en un mapa de calor de la planta: muestra los puntos calientes, estima cuánta energía se desaprovecha en cada equipo y ubica los equipos que podrían aprovecharla (retículas azules). Ajuste la paleta y la intensidad en la ficha.",
     clave: "Ver el calor sobre el plano de la planta ayuda a elegir con los ingenieros la sección del piloto.",
     camara: { ...PLANTA, zoom: 16.15, pitch: 0, bearing: 0 },
   },
   {
     id: "cruce", etapa: "Diagnóstico", titulo: "Compatibilidad", bajada: "El motor compara todo con todo",
-    texto: "El motor cruza las 8 fuentes con las 7 demandas (56 pares) por los racks de tubería de la planta y verifica cinco criterios: temperatura, potencia, continuidad, longitud de tubería y calidad del dato. Verde: compatible. Ámbar: condicionado. Los descartados no se trazan.",
+    texto: "El motor cruza las 8 fuentes con las 7 demandas (56 pares) por los racks de tubería de la planta y verifica cinco criterios: temperatura, potencia, continuidad, longitud de tubería y calidad del dato. El tipo de calor (vapor, líquido o gas) define qué tecnología encaja. Verde: compatible. Ámbar: condicionado. Los descartados no se trazan.",
     clave: "Las reglas son físicas: el calor solo pasa de mayor a menor temperatura, salvo que una bomba de calor lo eleve.",
     camara: { ...PLANTA, zoom: 16.25, pitch: 25, bearing: 0 },
   },
   {
     id: "tecnologia", etapa: "Estructuración", titulo: "Propuestas de la IA", bajada: "Proyectos de uso para cada par",
     texto: "Para el par elegido, un agente de IA propone proyectos de uso: reusar el calor en el proceso o convertirlo, por ejemplo en frío para climatizar oficinas o en electricidad. Cada propuesta trae la tecnología, la tubería por el rack y sus indicadores estimados.",
-    clave: "En este prototipo el agente es simulado: las propuestas salen de reglas y supuestos declarados, y así se rotulan. Los ingenieros de la refinería revisan y aprueban.",
+    clave: "No inventamos tecnologías: aportamos el saber cuándo, dónde y por qué instalarlas. En este prototipo el agente es simulado y así se rotula.",
     camara: { ...PLANTA, zoom: 17.7, pitch: 35, bearing: -15 }, enfocarOportunidad: true,
   },
   {
     id: "modelo", etapa: "Estructuración", titulo: "Financiamiento del proyecto", bajada: "Cómo podría financiarlo la refinería",
     texto: "Cada proyecto se puede financiar de varias formas: con CAPEX propio, con una ESCO, con un esquema BOOT, como servicio… La plataforma compara, año a año, el flujo de caja de la refinería en cada esquema. La inversión inicial y el retorno dependen de esa elección.",
-    clave: "Estos son esquemas de financiamiento del proyecto para la refinería. No son el modelo de negocio de Calor Rescatado.",
+    clave: "Estos son esquemas de financiamiento del proyecto para la refinería. No son el modelo de negocio de Valor Térmico.",
     camara: { ...PLANTA, zoom: 17.5, pitch: 30, bearing: 10 }, enfocarOportunidad: true,
   },
   {
@@ -351,9 +351,9 @@ export const PASOS: Paso[] = [
     camara: { ...PLANTA, zoom: 18.1, pitch: 45, bearing: 20 }, enfocarOportunidad: true,
   },
   {
-    id: "impacto", etapa: "Ejecución", titulo: "Escenarios de escala", bajada: "Del piloto a la refinería",
-    texto: "El resultado del piloto se proyecta en tres escenarios: el piloto en una sección, un escenario intermedio con cinco secciones similares (supuesto declarado) y la refinería completa, proporcional a la meta de 7 PJ. Son referencias de escala, no compromisos.",
-    clave: "Cobro por portafolio: un porcentaje del ahorro energético anual estimado de los proyectos que la refinería aprueba.",
+    id: "impacto", etapa: "Ejecución", titulo: "Escenarios y hoja de ruta", bajada: "Del piloto a la refinería",
+    texto: "Cada megavatio recuperado se proyecta en tres escenarios: el piloto en una sección, un escenario intermedio con cinco secciones similares (supuesto declarado) y la refinería completa, proporcional a la meta de 7 PJ. La hoja de ruta dice qué se necesita de la refinería y qué entrega el piloto a 3, 6 y 12 meses.",
+    clave: "Cobramos por el portafolio, según el alcance de la sección analizada: una tarifa base por sección y un valor por cada fuente de calor caracterizada.",
     camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
 ];

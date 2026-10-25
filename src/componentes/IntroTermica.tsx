@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Firmas } from "@/componentes/Firmas";
 import { DEMANDAS, FUENTES } from "@/dominio/escenario";
 
-// Entrada de Calor Rescatado: "calibración del sensor térmico". Tapa el mapa
+// Entrada de Valor Térmico: "calibración del sensor térmico". Tapa el mapa
 // mientras carga las teselas de la planta (avance real, con tope) y termina con
 // un barrido de escaneo que destapa la termografía. Sin vuelo desde el planeta.
 
@@ -67,13 +68,13 @@ export function IntroTermica({ mapaListo, onTerminar }: { mapaListo: boolean; on
             <span key={c} className={`absolute h-8 w-8 border-[#FFB000] ${c}`} />
           ))}
         </div>
-        <div className="m-auto flex w-full max-w-3xl flex-col items-center gap-7 px-6 text-center">
+        <div className="m-auto flex w-full max-w-3xl flex-col items-center gap-5 px-6 text-center lg:gap-7">
           <p className="hud text-[11px] text-[#FFB000]">
             <span className="vt-parpadeo mr-2 inline-block h-2 w-2 bg-[#FF3B30] align-middle" />
             REC · Refinería de Cartagena · 10,31° N 75,49° O
           </p>
           <h1 className="text-5xl font-extrabold uppercase leading-none tracking-tight text-white sm:text-7xl">
-            Calor <span className="vt-degradado">Rescatado</span>
+            Valor <span className="vt-degradado">Térmico</span>
           </h1>
           <p className="hud text-xs text-[#9B9BA1]">Mapa de oportunidades térmicas</p>
           <div className="h-3 w-full max-w-md" style={{ background: "var(--ironbow)" }} aria-hidden />
@@ -105,6 +106,7 @@ export function IntroTermica({ mapaListo, onTerminar }: { mapaListo: boolean; on
               </p>
             </details>
           </div>
+          <Firmas />
         </div>
       </div>
       {revelando ? <div className="vt-barrido absolute inset-x-0 top-0 h-[3px] bg-[#FFE14D] shadow-[0_0_24px_6px_rgba(255,176,0,0.75)]" aria-hidden /> : null}

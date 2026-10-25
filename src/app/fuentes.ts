@@ -1,6 +1,6 @@
 import localFont from "next/font/local";
 
-// Tipografías autoalojadas de Calor Rescatado: JetBrains Mono (titulares y HUD), IBM Plex
+// Tipografías autoalojadas de Valor Térmico: JetBrains Mono (titulares y HUD), IBM Plex
 // Sans (texto) e IBM Plex Mono (cifras tabulares). Sin Google Fonts en producción.
 
 export const fuenteTitulos = localFont({

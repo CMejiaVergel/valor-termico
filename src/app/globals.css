@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Calor Rescatado · identidad de cámara termográfica: grafito, escala ironbow,
+/* Valor Térmico · identidad de cámara termográfica: grafito, escala ironbow,
    tipografía técnica (JetBrains Mono en titulares y HUD, IBM Plex Sans en texto).
    Las variables de fuente (--font-titulos, --font-texto, --font-mono) las pone next/font. */
 :root {

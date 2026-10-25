@@ -1,10 +1,10 @@
-# Calor Rescatado · Mapa de Oportunidades Térmicas (vitrina guiada)
+# Valor Térmico · Mapa de Oportunidades Térmicas (vitrina guiada)
 
-Prototipo interactivo que explica, en 10 pasos guiados, el servicio de Calor Rescatado: consultoría especializada
+Prototipo interactivo que explica, en 10 pasos guiados, el servicio de Valor Térmico: consultoría especializada
 apoyada en software. La refinería entrega sus datos térmicos (fuentes con calor sobrante y consumidores potenciales),
 la plataforma los consolida en el mapa, un motor evalúa la compatibilidad y un agente de IA (simulado) propone
 proyectos de uso con indicadores estimados. El entregable es un portafolio documentado que los ingenieros de la
-refinería aprueban. Modelo de negocio: **cobro por portafolio**, un porcentaje del ahorro energético anual estimado.
+refinería aprueban. Modelo de negocio: **cobramos por el portafolio, según el alcance de la sección analizada** (tarifa base por sección + valor por fuente de calor caracterizada). La solución la propone **PDI Advanced**.
 
 Las fuentes, demandas y tecnologías son **ilustrativas**. Los precios de energía salen de fuentes publicadas
 (Afinia, XM, gas importado) y cada supuesto se declara en la sección «Supuestos y fuentes» (`FUENTES_DATOS`).
@@ -28,7 +28,12 @@ Fuentes, demandas y secciones se ubican sobre la imagen satelital real de la ref
 | Decisión | 7 · Evaluación | Indicadores estimados, radar de 8 criterios, riesgo, prioridad y supuestos con valores citados |
 | | 8 · Portafolio del piloto | Sección elegida por la refinería y meta (1 MW por defecto); los proyectos suman la meta |
 | Ejecución | 9 · Piloto y monitoreo | Sensórica clamp-on en vivo (simulada) y conciliación IPMVP |
-| | 10 · Escenarios de escala | Piloto, intermedio (5 secciones, supuesto) y refinería completa (proporcional a 7 PJ); cobro por portafolio |
+| | 10 · Escenarios y hoja de ruta | Piloto, intermedio (5 secciones, supuesto) y refinería completa (∝ 7 PJ); 1 MW según su uso; cobro por portafolio; hoja de ruta (antes del lunes, meses 1–3, meses 6–12); PDI Advanced y aliados |
+
+## Marca y recursos
+
+- `public/marca/`: logo Valor Térmico (recorte del original `Logo Valor Térmico.jpg`), PDI Advanced y aliados (Cámara de Comercio de Cartagena, Econova · Grupo Ecopetrol, GIMI Institute, IXL Center). Los logos de aliados son pequeños en origen: no se amplían.
+- `recursos/qr/generar.mjs`: isotipo «VT» y QR con el logo (corrección H). Hoy apunta a una URL de ejemplo; con el enlace definitivo: `node generar.mjs --url https://…` (desde `recursos/qr/`).
 
 ## Cómo correrlo
 

@@ -10,7 +10,7 @@ import { rutaTuberia, type Oportunidad, type Par, type Prioridad } from "@/domin
 import { hash01, desplazar } from "@/componentes/mapa/geometria";
 import { rgbTemperatura } from "@/componentes/ui";
 
-// Mapa de Calor Rescatado con lenguaje de cámara termográfica: satélite en
+// Mapa de Valor Térmico con lenguaje de cámara termográfica: satélite en
 // escala de grises, el calor en falso color como protagonista, retículas con
 // lectura de temperatura sobre cada fuente y demanda, y la conexión como
 // tubería ortogonal tendida por los racks de la planta (no arcos en el aire).

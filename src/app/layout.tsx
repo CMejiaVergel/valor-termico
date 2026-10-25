@@ -3,7 +3,7 @@ import { fuenteMono, fuenteTexto, fuenteTitulos } from "./fuentes";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Calor Rescatado · Mapa de Oportunidades Térmicas",
+  title: "Valor Térmico · Mapa de Oportunidades Térmicas",
   description: "Recorrido guiado: del calor residual de la refinería a un portafolio de proyectos medibles, priorizados y financiables.",
 };
 

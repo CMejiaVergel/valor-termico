@@ -14,7 +14,7 @@ export function BarraMovil({ chips, menuAbierto, onMenu, satelite, onSatelite, a
       <div className="relative flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="font-[family-name:var(--font-titulos)] text-lg font-bold text-white">
-            <span className="vt-degradado">Calor</span> Rescatado
+            Valor <span className="vt-degradado">Térmico</span>
           </span>
           <span className="truncate text-[9px] leading-tight text-[#F5C518]">datos ilustrativos</span>
         </div>

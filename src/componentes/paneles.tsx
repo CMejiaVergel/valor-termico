@@ -15,6 +15,7 @@ import {
   TECNOLOGIAS,
   fraccionMeta,
   pjAnioPorMW,
+  precioMWh,
   type Criterio8,
   type IdPaso,
   type Supuestos,
@@ -24,6 +25,7 @@ import { CALOR_RESIDUAL_MW, SECCIONES_PILOTO, ajusteTecnologia, evaluar, type Es
 import { Barras, COLOR_PAR, FlujoCaja, COLOR_PRIORIDAD_CSS, MatrizCruce, MatrizPrioridad, Radar, SaltoTemperatura, Serie } from "@/componentes/graficos";
 import { PALETAS, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
 import { BarraTemperatura, COLOR, ChipOrigen, anios, cssTemperatura, mw, num, usd } from "@/componentes/ui";
+import { Firmas } from "@/componentes/Firmas";
 
 // Panel contextual de cada paso: lo que explica los datos del ejemplo y deja
 // interactuar (paleta del mapa térmico, par del cruce, tecnología, modelo,
@@ -139,7 +141,7 @@ function PanelReto({ onFuentes }: { onFuentes: () => void }) {
         </p>
       </div>
       <div className="flex flex-col gap-1.5 text-xs">
-        <p className="hud text-[9px] text-[#9B9BA1]">Qué ofrece Calor Rescatado</p>
+        <p className="hud text-[9px] text-[#9B9BA1]">Qué ofrece Valor Térmico</p>
         {[
           ["Servicio de consultoría especializada", "con software propio para consolidar y analizar los datos térmicos de la planta."],
           ["Portafolio documentado", "de proyectos de uso del calor, con indicadores estimados y respaldo técnico y bibliográfico."],
@@ -413,7 +415,7 @@ function PanelModelo({ op, onModelo, supuestos }: Pick<ContextoPanel, "op" | "on
     <div className="flex flex-col gap-3">
       <ParCabecera op={op} />
       <p className="rounded-[2px] border border-[#5AC8FA]/40 bg-[#5AC8FA]/5 p-2 text-[11px] text-[#C8C8CC]">
-        Estos esquemas son opciones de <b className="text-white">financiamiento del proyecto</b> para la refinería. No son el modelo de negocio de Calor Rescatado, que cobra por el portafolio.
+        Estos esquemas son opciones de <b className="text-white">financiamiento del proyecto</b> para la refinería. No son el modelo de negocio de Valor Térmico, que cobra por el portafolio.
       </p>
       <div>
         <p className="hud mb-1 text-[9px] text-[#9B9BA1]">Flujo de caja acumulado de la refinería · años 0–5</p>
@@ -653,7 +655,7 @@ function PanelMonitoreo({ op }: Pick<ContextoPanel, "op">) {
       <div className={`rounded-[2px] border p-2 text-xs ${dif <= 5 ? "border-[#3DDC84]/50 text-[#3DDC84]" : "border-[#FF3B30] text-[#FF3B30]"}`}>
         Conciliación entregado–esperado (IPMVP): {num(dif, 1)} % (tolerancia 5 %) · {dif <= 5 ? "dentro de lo pactado" : "fuera de lo pactado: se avisa a las partes"}
       </div>
-      <Cifra etiqueta="Calor rescatado en el mes" valor={`${num(mwh, 1)} MWh`} color={COLOR.lima} origen="MEDIDO" />
+      <Cifra etiqueta="Calor recuperado en el mes" valor={`${num(mwh, 1)} MWh`} color={COLOR.lima} origen="MEDIDO" />
       <ul className="flex flex-col gap-1 text-[11px]">
         {HABILITADORES.map((h) => (
           <li key={h.id} className="rounded border border-white/10 px-2 py-1">
@@ -673,6 +675,11 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
   // Ahorro e inversión por MW recuperado del piloto: base para proyectar los otros escenarios.
   const ahorroPorMW = recuperado > 0 ? ahorro / recuperado : 0;
   const inversionPorMW = recuperado > 0 ? inversion / recuperado : 0;
+  // Qué rinde 1 MW de calor recuperado según su uso (rendimientos del catálogo y precios de referencia).
+  const porUso = (["T1", "T4", "T5"] as const).map((id) => {
+    const t = TECNOLOGIAS.find((x) => x.id === id)!;
+    return { t, util: t.factor, ahorro: t.factor * supuestos.horas * precioMWh(t.atiende, supuestos) };
+  });
   const escenarios = [
     { nombre: "Piloto", mw: recuperado, base: `Una sección: ${seccion.toLowerCase()}. Meta ${num(metaPiloto, 1)} MW.`, tipo: "Proyectos del portafolio", color: COLOR.lima },
     { nombre: "Intermedio", mw: recuperado * SECCIONES_INTERMEDIO, base: `Supuesto declarado: ${SECCIONES_INTERMEDIO} secciones similares a la del piloto.`, tipo: "Supuesto", color: COLOR.amarillo },
@@ -710,27 +717,48 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
       <p className="text-[10px] text-[#5E5E66]">
         Intermedio y refinería completa repiten el ahorro y la inversión por MW del piloto ({usd(ahorroPorMW)} y {usd(inversionPorMW)} por MW). Son referencias de escala: cada sección real tiene su propio portafolio.
       </p>
-      <div className="visor p-3 text-xs">
-        <p className="hud text-[9px] text-[#FFB000]">Modelo de negocio de Calor Rescatado</p>
-        <p className="mt-1 text-base font-semibold text-white">Cobro por portafolio</p>
-        <p className="mt-1 text-[#C8C8CC]">Un porcentaje del ahorro energético anual estimado de los proyectos que la refinería aprueba. Se pacta con la refinería para cada portafolio.</p>
-        <p className="mt-2 text-[10px] text-[#9B9BA1]">Es independiente de cómo financie la refinería cada proyecto (CAPEX propio, ESCO, BOOT…).</p>
+      <div className="rounded-[2px] border border-white/10 bg-white/5 p-2 text-xs">
+        <p className="hud mb-1 text-[9px] text-[#9B9BA1]">1 MW de calor recuperado, según su uso</p>
+        <ul className="flex flex-col gap-1">
+          {porUso.map(({ t, util, ahorro: a }) => (
+            <li key={t.id} className="cifra-tabular flex items-baseline justify-between gap-2 text-[11px]">
+              <span className="text-[#C8C8CC]">{t.ruta} · {t.nombre.toLowerCase()}</span>
+              <span className="shrink-0 text-white">
+                {num(util, 2)} MW → <b>{usd(a)}</b>/año
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[10px] text-[#5E5E66]">Estimado con {num(supuestos.horas)} h/año, calor a USD {supuestos.costoEnergia}/MWh y electricidad a USD {supuestos.precioElectricidad}/MWh.</p>
       </div>
-      <ol className="relative flex flex-col gap-2 border-l border-white/15 pl-4 text-xs">
-        {[
-          ["1 · Datos y diagnóstico", "La refinería entrega los datos térmicos; se consolidan y se cruzan."],
-          ["2 · Portafolio del piloto", `Proyectos de la sección elegida que suman ${num(metaPiloto, 1)} MW, con su respaldo técnico.`],
-          ["3 · Aprobación y verificación", "Los ingenieros aprueban; el piloto se mide con IPMVP antes de escalar."],
-          ["4 · Escala", `Nuevas secciones, cada una con su portafolio, hacia la meta de ${META_RETO.pj} PJ.`],
-        ].map(([t, d], i) => (
-          <li key={t}>
-            <span className="absolute -left-[5px] mt-1 h-2.5 w-2.5 rounded-full" style={{ background: i < 2 ? COLOR.lima : COLOR.teal }} />
-            <p className="font-medium text-white">{t}</p>
-            <p className="text-[#9B9BA1]">{d}</p>
-          </li>
-        ))}
-      </ol>
+      <div className="visor p-3 text-xs">
+        <p className="hud text-[9px] text-[#FFB000]">Modelo de negocio de Valor Térmico</p>
+        <p className="mt-1 text-base font-semibold text-white">Cobramos por el portafolio</p>
+        <p className="mt-1 text-[#C8C8CC]">Según el alcance de la sección analizada: una tarifa base por sección y un valor por cada fuente de calor caracterizada. El entregable es el portafolio con las propuestas, la tecnología, los datos de base y las estimaciones.</p>
+        <p className="mt-2 text-[10px] text-[#9B9BA1]">No depende de que los proyectos se ejecuten ni de cómo los financie la refinería. Acompañar la implementación se cotiza aparte.</p>
+      </div>
+      <div>
+        <p className="hud mb-1.5 text-[9px] text-[#9B9BA1]">Hoja de ruta del piloto</p>
+        <ol className="relative flex flex-col gap-2 border-l border-white/15 pl-4 text-xs">
+          {[
+            ["Antes del lunes 26 de octubre", "De la refinería: un interlocutor técnico, acuerdo de confidencialidad y canal seguro de datos, la sección candidata y la lista de datos disponibles (diagramas, equipos con calor excedente, consumidores, balances)."],
+            ["Mes 1", "Datos consolidados y validados en la plataforma; inventario y mapa térmico de la sección; visita técnica."],
+            ["Mes 2", "Mediciones puntuales donde falte dato; compatibilidad y propuestas preliminares con indicadores."],
+            ["Mes 3", "Portafolio preliminar revisado con los ingenieros; 1 o 2 proyectos priorizados para prefactibilidad."],
+            ["Meses 6 a 12", "Portafolio final documentado (el entregable), prefactibilidad con cotizaciones, línea base para medir el ahorro y decisión de inversión. Hoja de ruta para replicar en otras secciones."],
+          ].map(([t, d], i) => (
+            <li key={t}>
+              <span className="absolute -left-[5px] mt-1 h-2.5 w-2.5 rounded-full" style={{ background: i === 0 ? COLOR.naranja : i < 4 ? COLOR.lima : COLOR.teal }} />
+              <p className="font-medium text-white">{t}</p>
+              <p className="text-[#9B9BA1]">{d}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
       <VerFuentes onFuentes={onFuentes} />
+      <div className="border-t border-white/10 pt-3">
+        <Firmas compacta />
+      </div>
     </div>
   );
 }
