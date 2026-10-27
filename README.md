@@ -15,6 +15,8 @@ pero la identidad visual es **propia y distinta** porque ambas se presentan en e
 racks de la planta, HUD con línea de tiempo abajo, ficha técnica plegable y entrada de "calibración del sensor").
 Fuentes, demandas y secciones se ubican sobre la imagen satelital real de la refinería (`PX()` en `escenario.ts`).
 
+**Guía de uso con pantallazos:** [docs/Guia_de_uso_Valor_Termico.pdf](docs/Guia_de_uso_Valor_Termico.pdf). En el celular la presentación automática viene apagada para que cada participante avance a su ritmo (se activa desde el menú ☰).
+
 ## Recorrido
 
 | Etapa | Paso | Qué muestra |
@@ -92,4 +94,5 @@ Para compilar a mano con la misma subruta: `BASE_PATH=/valor-termico NEXT_PUBLIC
 - `src/componentes/IntroTermica.tsx` — entrada de calibración con barrido de escaneo.
 - `src/componentes/Vitrina.tsx` — orquesta pasos, indicadores, narración, paneles y celular.
 - `src/componentes/paneles.tsx`, `graficos.tsx`, `ui.tsx`, `Movil.tsx`.
-- `referencia/` — prototipo v1 (HTML) y guía de uso en PDF.
+- `referencia/` — prototipo v1 (HTML) y guía de uso de la versión anterior en PDF.
+- `docs/` — guía de uso de esta versión (PDF).

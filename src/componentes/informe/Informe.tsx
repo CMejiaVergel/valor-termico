@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { FUENTES_DATOS, META_RETO, MODELOS, SUPUESTOS_INICIALES, type Supuestos } from "@/dominio/escenario";
 import { ANIOS_FLUJO, ID_EJEMPLO, TASA_DESCUENTO, calculo, conModelo, flujo, hojaDeRuta, modelosPara, portafolioPlanta, totales } from "@/dominio/portafolios";
@@ -17,6 +17,8 @@ import { anios, num, usd } from "@/componentes/ui";
 // propuesta comercial: no incluye el valor de la consultoría.
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+/** Ancho de una hoja A4 en píxeles CSS (210 mm a 96 ppp). */
+const ANCHO_A4_PX = 794;
 const FECHA = "27 de octubre de 2026";
 
 function numero(v: string | null, def: number) {
@@ -163,22 +165,30 @@ export function Informe() {
   const codigo = `VT-INF-2026-${p.codigo.replace("OT-", "")}`;
   const frio = p.demanda.tipo === "FRIO";
   let n = 1;
+  // En pantallas angostas (celular) las hojas A4 se reducen para caber a lo ancho; al imprimir vuelven a 1:1.
+  const [escala, setEscala] = useState(1);
+  useEffect(() => {
+    const ajustar = () => setEscala(Math.min(1, (window.innerWidth - 16) / ANCHO_A4_PX));
+    ajustar();
+    window.addEventListener("resize", ajustar);
+    return () => window.removeEventListener("resize", ajustar);
+  }, []);
 
   return (
     <div className="vt-informe min-h-screen bg-[#3A3A40] py-6 print:bg-white print:py-0">
       <div className="vt-sin-imprimir fixed inset-x-0 top-0 z-10 flex items-center justify-between gap-3 bg-[#0A0A0B] px-4 py-2 text-[11px] text-[#EDEDED]">
-        <span className="hud text-[10px] text-[#FFB000]">Vista de documento · {codigo}</span>
-        <span className="flex gap-2">
+        <span className="hud hidden text-[10px] text-[#FFB000] sm:inline">Vista de documento · {codigo}</span>
+        <span className="flex w-full justify-between gap-2 sm:w-auto">
           <a href={`${BASE}/`} className="border border-white/20 px-3 py-1 hover:bg-white/10">
             ← Volver al prototipo
           </a>
           <button type="button" onClick={() => window.print()} className="bg-[#FFB000] px-3 py-1 font-bold text-[#0A0A0B] hover:bg-[#FFE14D]">
-            ⤓ Imprimir / Guardar como PDF
+            ⤓ <span className="sm:hidden">PDF</span><span className="hidden sm:inline">Imprimir / Guardar como PDF</span>
           </button>
         </span>
       </div>
 
-      <div className="mx-auto flex flex-col items-center gap-6 pt-8 print:gap-0 print:pt-0">
+      <div className="vt-hojas mx-auto flex flex-col items-center gap-6 pt-8 print:gap-0 print:pt-0" style={{ zoom: escala }}>
         {/* Portada. */}
         <section className="vt-pagina relative justify-between bg-[#0D0D0D] text-[#EDEDED]">
           <div className="px-[18mm] pt-[22mm]">

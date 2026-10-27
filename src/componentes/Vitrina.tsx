@@ -133,13 +133,8 @@ export function Vitrina() {
     setMenu(false);
   }, [paso]);
 
-  // Celular: presentación automática al llegar (una vez) y tarjeta que deja ver el mapa.
-  const autoMovilIniciado = useRef(false);
-  useEffect(() => {
-    if (!movil || !lista || autoMovilIniciado.current) return;
-    autoMovilIniciado.current = true;
-    setAuto(true);
-  }, [movil, lista]);
+  // Celular: la presentación automática no arranca sola (cada quien avanza a su ritmo);
+  // si se activa desde el menú, la tarjeta se pliega para dejar ver el mapa.
   useEffect(() => {
     if (!movil || !auto || !tarjeta || !lista) return;
     const id = setTimeout(() => setTarjeta(false), 7000);

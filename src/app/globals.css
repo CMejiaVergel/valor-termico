@@ -368,6 +368,9 @@ section::-webkit-scrollbar-thumb {
   .vt-sin-imprimir {
     display: none !important;
   }
+  .vt-hojas {
+    zoom: 1 !important;
+  }
   .vt-pagina {
     box-shadow: none;
     height: 297mm;
