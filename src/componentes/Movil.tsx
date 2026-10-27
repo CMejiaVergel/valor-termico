@@ -1,5 +1,6 @@
 "use client";
 
+import { TOTAL_PASOS, numeroPaso } from "@/dominio/escenario";
 import type { ReactNode } from "react";
 
 // Vitrina en el celular (misma experiencia guiada de ConfluencIA, docs/19 §8):
@@ -40,10 +41,10 @@ export function BarraMovil({ chips, menuAbierto, onMenu, satelite, onSatelite, a
 
 export function TarjetaPaso({ paso, total, etapa, titulo, bajada, texto, clave, detalle, onVerMapa, onAnterior }: { paso: number; total: number; etapa: string; titulo: string; bajada: string; texto: string; clave: string; detalle: ReactNode; onVerMapa: () => void; onAnterior: () => void }) {
   return (
-    <section key={paso} className={`vt-tarjeta-movil absolute inset-x-2 ${ABAJO_SEGURO} z-20 flex max-h-[80dvh] flex-col rounded-[4px] border border-white/15 bg-[#0A0A0B]/[0.96] shadow-2xl md:hidden`} aria-label={`Paso ${paso + 1} de ${total}`}>
+    <section key={paso} className={`vt-tarjeta-movil absolute inset-x-2 ${ABAJO_SEGURO} z-20 flex max-h-[80dvh] flex-col rounded-[4px] border border-white/15 bg-[#0A0A0B]/[0.96] shadow-2xl md:hidden`} aria-label={`Paso ${numeroPaso(paso)} de ${TOTAL_PASOS}`}>
       <div className="min-h-0 overflow-y-auto overscroll-contain p-4 pb-2">
         <p className="text-[10px] uppercase tracking-[0.18em] text-[#FFB000]">
-          {etapa} · paso {paso + 1} de {total}
+          {etapa} · paso {numeroPaso(paso)} de {TOTAL_PASOS}
         </p>
         <h2 className="mt-1 text-xl font-bold leading-tight text-white">{titulo}</h2>
         <p className="text-xs text-[#9B9BA1]">{bajada}</p>
@@ -52,7 +53,7 @@ export function TarjetaPaso({ paso, total, etapa, titulo, bajada, texto, clave, 
           <span className="font-semibold text-white">Por qué importa: </span>
           {clave}
         </p>
-        {paso === 0 ? <p className="mt-2 text-[11px] leading-snug text-[#3DDC84]">Recorrido guiado de {total} pasos. Toque «Ver en el mapa» para explorar en 3D y «Siguiente» para avanzar.</p> : null}
+        {paso === 0 ? <p className="mt-2 text-[11px] leading-snug text-[#3DDC84]">Recorrido guiado de {TOTAL_PASOS} pasos. Toque «Ver en el mapa» para explorar en 3D y «Siguiente» para avanzar.</p> : null}
         <div className="mt-3 border-t border-white/10 pt-3 text-xs">
           <p className="mb-2 text-[10px] uppercase tracking-[0.18em] text-[#9B9BA1]">Detalle del paso</p>
           {detalle}
@@ -81,7 +82,7 @@ export function ControlesMovil({ paso, total, titulo, onInfo, onAnterior, onSigu
     <div className={`absolute inset-x-2 ${ABAJO_SEGURO} z-20 flex items-center gap-2 md:hidden`}>
       <button type="button" onClick={onInfo} className="flex h-12 min-w-0 flex-1 flex-col justify-center rounded-full border border-white/15 bg-[#0A0A0B]/[0.93] px-4 text-left">
         <span className="text-[9px] uppercase tracking-[0.18em] text-[#FFB000]">
-          Paso {paso + 1}/{total} · ⓘ ver explicación
+          Paso {numeroPaso(paso)}/{TOTAL_PASOS} · ⓘ ver explicación
         </span>
         <span className="truncate text-sm font-semibold text-white">{titulo}</span>
       </button>

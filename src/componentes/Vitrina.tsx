@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ETAPAS, META_PILOTO_INICIAL, OPORTUNIDAD_INICIAL, PASOS, SUPUESTOS_INICIALES, fraccionMeta, type Supuestos, type Zona } from "@/dominio/escenario";
+import { ETAPAS, META_PILOTO_INICIAL, OPORTUNIDAD_INICIAL, PASOS, TOTAL_PASOS, numeroPaso, type IdPaso, SUPUESTOS_INICIALES, fraccionMeta, type Supuestos, type Zona } from "@/dominio/escenario";
 import { ajusteTecnologia, cruzarTodo, demanda, ejesMatriz, evaluar, fuente, mejorTecnologia, modelo, portafolioPiloto, tecnologia, type Oportunidad } from "@/dominio/motor";
 import { SupuestosFuentes } from "@/componentes/SupuestosFuentes";
 import { MapaTermico, type FaseEntrada, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
@@ -15,7 +15,7 @@ import { ChipOrigen, Contador, KpiMini, num } from "@/componentes/ui";
 //   · barra superior delgada (marca, ubicación, controles),
 //   · visor del paso arriba a la izquierda y lecturas debajo,
 //   · escala de temperatura y ficha técnica plegable a la derecha,
-//   · línea de tiempo de 10 pasos agrupados por etapa abajo.
+//   · línea de tiempo de 10 pasos (el último en 10.1 y 10.2) agrupados por etapa abajo.
 // La mecánica (pasos, motor, presentación automática, celular) se conserva.
 
 const SEG_POR_PASO = 14;
@@ -96,7 +96,7 @@ export function Vitrina() {
 
   const alPar = useCallback(
     (id: string) => {
-      if (actual.id === "portafolio" || actual.id === "monitoreo" || actual.id === "impacto") elegirPar(id);
+      if (actual.id === "portafolio" || actual.id === "monitoreo" || actual.id === "impacto" || actual.id === "ejemplo") elegirPar(id);
       else setParSel(id);
       setFichaAbierta(true);
     },
@@ -214,6 +214,7 @@ export function Vitrina() {
       onIntensidad={setIntensidad}
       puntoSeleccionado={puntoSel}
       onPunto={alPunto}
+      onIrPaso={(id: IdPaso) => ir(indice(id))}
     />
   );
 
@@ -228,8 +229,8 @@ export function Vitrina() {
   }
 
   const etapaActual = ETAPAS.indexOf(actual.etapa);
-  // Último paso: el tablero del portafolio ocupa la pantalla y el mapa queda de fondo.
-  const tablero = actual.id === "impacto";
+  // Paso 10 (10.1 portafolio y 10.2 ejemplo): el tablero ocupa la pantalla y el mapa queda de fondo.
+  const tablero = actual.id === "impacto" || actual.id === "ejemplo";
 
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#0A0A0B] text-[#EDEDED]">
@@ -249,7 +250,7 @@ export function Vitrina() {
         onPrecargado={alPrecargado}
         onSeleccionarPar={alPar}
         onSeleccionarPunto={alPunto}
-        seccionPiloto={actual.id === "portafolio" || actual.id === "impacto" ? seccion : null}
+        seccionPiloto={actual.id === "portafolio" || actual.id === "impacto" || actual.id === "ejemplo" ? seccion : null}
       />
 
       {/* ── Celular ── */}
@@ -313,7 +314,7 @@ export function Vitrina() {
         <section key={paso} className="visor vt-tarjeta-movil p-4">
           <p className="hud flex items-center justify-between text-[10px] text-[#FFB000]">
             <span>
-              {String(paso + 1).padStart(2, "0")}/{PASOS.length} · {actual.etapa}
+              {numeroPaso(paso)}/{TOTAL_PASOS} · {actual.etapa}
             </span>
             <span className="text-[#5E5E66]">{actual.bajada}</span>
           </p>
@@ -363,7 +364,7 @@ export function Vitrina() {
 
       {/* ── Tablero del portafolio (último paso, escritorio) ── */}
       {tablero && lista && !movil ? (
-        <section key="tablero" className="vt-tarjeta-movil absolute inset-x-4 bottom-[7.25rem] top-[3.75rem] z-10 hidden overflow-y-auto border border-white/10 bg-[#0A0A0B]/[0.9] p-4 backdrop-blur-sm md:block" aria-label="Portafolio de la planta">
+        <section key={actual.id} className="vt-tarjeta-movil absolute inset-x-4 bottom-[7.25rem] top-[3.75rem] z-10 hidden overflow-y-auto border border-white/10 bg-[#0A0A0B]/[0.9] p-4 backdrop-blur-sm md:block" aria-label="Portafolio de la planta">
           {panel}
         </section>
       ) : null}
@@ -396,7 +397,7 @@ export function Vitrina() {
                   <button type="button" disabled={!lista} onClick={() => ir(i)} className="group relative flex w-full flex-col items-start gap-1 pt-0.5 text-left">
                     <span className={`h-3 w-3 border-2 transition ${i === paso ? "scale-125 border-[#FFE14D] bg-[#FFB000]" : i < paso ? "border-[#FFB000] bg-[#0A0A0B]" : "border-white/30 bg-[#0A0A0B] group-hover:border-white"}`} />
                     <span className={`block w-full truncate pr-2 text-[11px] leading-tight ${i === paso ? "font-semibold text-white" : "text-[#9B9BA1] group-hover:text-white"}`}>
-                      <span className="cifra-tabular mr-1 text-[#5E5E66]">{String(i + 1).padStart(2, "0")}</span>
+                      <span className="cifra-tabular mr-1 text-[#5E5E66]">{numeroPaso(i)}</span>
                       {/* En pantallas angostas solo el número; el título del paso actual siempre. */}
                       <span className={i === paso ? "" : "hidden xl:inline"}>{p.titulo}</span>
                     </span>

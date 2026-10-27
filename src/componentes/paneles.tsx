@@ -59,6 +59,8 @@ export interface ContextoPanel {
   onPaleta: (p: PaletaCalor) => void;
   intensidad: number;
   onIntensidad: (n: number) => void;
+  /** Salta a otro paso del recorrido (10.1 ↔ 10.2). */
+  onIrPaso?: (id: IdPaso) => void;
 }
 
 const COLOR_CRITERIO: Record<EstadoCriterio, string> = { CUMPLE: COLOR.verde, CONDICION: COLOR.amarillo, INCUMPLE: COLOR.rojo };
@@ -671,7 +673,8 @@ function PanelMonitoreo({ op }: Pick<ContextoPanel, "op">) {
 }
 
 /** 10 · Escenarios de escala: piloto, intermedio (supuesto) y refinería completa (proporcional a la meta). */
-function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }: Pick<ContextoPanel, "cartera" | "metaPiloto" | "seccion" | "supuestos" | "onFuentes">) {
+/** `ancho`: en el tablero de pantalla completa se reparte en tres columnas. */
+function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes, ancho = false }: Pick<ContextoPanel, "cartera" | "metaPiloto" | "seccion" | "supuestos" | "onFuentes"> & { ancho?: boolean }) {
   const recuperado = cartera.reduce((a, o) => a + o.recuperadoMW, 0);
   const ahorro = cartera.reduce((a, o) => a + o.ahorroUSD, 0);
   const inversion = cartera.reduce((a, o) => a + o.capexUSD, 0);
@@ -689,7 +692,8 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
     { nombre: "Refinería completa", mw: META_RETO.mwPromedio, base: `Proporcional a la meta de ${META_RETO.pj} PJ en ${META_RETO.anios} años. Sin compromiso.`, tipo: "Referencia de escala", color: COLOR.naranja },
   ];
   return (
-    <div className="flex flex-col gap-3">
+    <div className={ancho ? "grid gap-4 xl:grid-cols-3" : "flex flex-col gap-3"}>
+      <div className="flex flex-col gap-3">
       <ul className="flex flex-col gap-2">
         {escenarios.map((e) => (
           <li key={e.nombre} className="rounded-[2px] border border-white/10 bg-white/5 p-2 text-xs">
@@ -720,6 +724,8 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
       <p className="text-[10px] text-[#5E5E66]">
         Intermedio y refinería completa repiten el ahorro y la inversión por MW del piloto ({usd(ahorroPorMW)} y {usd(inversionPorMW)} por MW). Son referencias de escala: cada sección real tiene su propio portafolio.
       </p>
+      </div>
+      <div className="flex flex-col gap-3">
       <div className="rounded-[2px] border border-white/10 bg-white/5 p-2 text-xs">
         <p className="hud mb-1 text-[9px] text-[#9B9BA1]">1 MW de calor recuperado, según su uso</p>
         <ul className="flex flex-col gap-1">
@@ -734,7 +740,14 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
         </ul>
         <p className="mt-1 text-[10px] text-[#5E5E66]">Estimado con {num(supuestos.horas)} h/año, calor a USD {supuestos.costoEnergia}/MWh y electricidad a USD {supuestos.precioElectricidad}/MWh.</p>
       </div>
-      <div>
+      {ancho ? <VerFuentes onFuentes={onFuentes} /> : null}
+      {ancho ? (
+        <div className="border-t border-white/10 pt-3">
+          <Firmas compacta />
+        </div>
+      ) : null}
+      </div>
+      <div className={ancho ? "xl:order-first" : ""}>
         <p className="hud mb-1.5 text-[9px] text-[#9B9BA1]">Hoja de ruta del piloto</p>
         <ol className="relative flex flex-col gap-2 border-l border-white/15 pl-4 text-xs">
           {[
@@ -752,10 +765,12 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
           ))}
         </ol>
       </div>
-      <VerFuentes onFuentes={onFuentes} />
-      <div className="border-t border-white/10 pt-3">
-        <Firmas compacta />
-      </div>
+      {ancho ? null : <VerFuentes onFuentes={onFuentes} />}
+      {ancho ? null : (
+        <div className="border-t border-white/10 pt-3">
+          <Firmas compacta />
+        </div>
+      )}
     </div>
   );
 }
@@ -781,12 +796,15 @@ export function PanelPaso(ctx: ContextoPanel & { puntoSeleccionado: string | nul
     case "monitoreo":
       return <PanelMonitoreo op={ctx.op} />;
     case "impacto":
+    case "ejemplo":
       return (
         <Tablero
+          vista={ctx.paso === "ejemplo" ? "ejemplo" : "lista"}
+          onIrPaso={ctx.onIrPaso}
           supuestos={ctx.supuestos}
           modeloInicial={ctx.op.modelo.id}
           compacto={ctx.compacto}
-          escenarios={<PanelEscenarios cartera={ctx.cartera} metaPiloto={ctx.metaPiloto} seccion={ctx.seccion} supuestos={ctx.supuestos} onFuentes={ctx.onFuentes} />}
+          escenarios={<PanelEscenarios ancho={!ctx.compacto} cartera={ctx.cartera} metaPiloto={ctx.metaPiloto} seccion={ctx.seccion} supuestos={ctx.supuestos} onFuentes={ctx.onFuentes} />}
         />
       );
   }

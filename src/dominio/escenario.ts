@@ -269,7 +269,8 @@ export type IdPaso =
   | "evaluacion"
   | "portafolio"
   | "monitoreo"
-  | "impacto";
+  | "impacto"
+  | "ejemplo";
 
 export interface Camara {
   lng: number;
@@ -281,6 +282,8 @@ export interface Camara {
 
 export interface Paso {
   id: IdPaso;
+  /** Número que se muestra (10.1, 10.2…); por omisión, la posición. */
+  numero?: string;
   etapa: "El reto" | "Diagnóstico" | "Estructuración" | "Decisión" | "Ejecución";
   titulo: string;
   bajada: string;
@@ -351,11 +354,22 @@ export const PASOS: Paso[] = [
     camara: { ...PLANTA, zoom: 18.1, pitch: 45, bearing: 20 }, enfocarOportunidad: true,
   },
   {
-    id: "impacto", etapa: "Ejecución", titulo: "Portafolio de la planta", bajada: "El entregable",
-    texto: "Todas las propuestas se consolidan en un portafolio de planta: cada una con sus indicadores, su ubicación, la tecnología, el financiamiento y su hoja de ruta. Abra el detalle del chiller de absorción, gire su gemelo digital y exporte el informe.",
+    id: "impacto", numero: "10.1", etapa: "Ejecución", titulo: "Portafolio de la planta", bajada: "El entregable",
+    texto: "Todas las propuestas se consolidan en un portafolio de planta: cuántas son, cuánto calor recuperan, cuánto aportan a la meta, cuánto ahorran y cuánto cuestan. Toque una propuesta para ver su detalle.",
     clave: "Este portafolio documentado es lo que recibe la refinería al final de la consultoría. Sus ingenieros deciden qué proyectos ejecutar.",
     camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
+  {
+    id: "ejemplo", numero: "10.2", etapa: "Ejecución", titulo: "Ejemplo detallado", bajada: "Chiller de absorción",
+    texto: "Así se documenta cada propuesta: indicadores, ubicación en la planta, la tecnología con su gemelo digital, el financiamiento, el cálculo del ahorro, el impacto y la hoja de ruta. Gire el gemelo, siga el recorrido del proceso y exporte el informe.",
+    clave: "El informe de cada propuesta es el respaldo técnico con el que los ingenieros deciden la inversión.",
+    camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
+  },
 ];
+
+/** Número visible del paso i (01…09, 10.1, 10.2). */
+export const numeroPaso = (i: number) => PASOS[i]?.numero ?? String(i + 1).padStart(2, "0");
+/** Pasos numerados (los subpasos cuentan como uno). */
+export const TOTAL_PASOS = new Set(PASOS.map((p, i) => numeroPaso(i).split(".")[0])).size;
 
 export const ETAPAS = ["El reto", "Diagnóstico", "Estructuración", "Decisión", "Ejecución"] as const;

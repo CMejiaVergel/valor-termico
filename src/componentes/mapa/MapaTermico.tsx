@@ -52,7 +52,7 @@ const PASO_ID = (i: number): IdPaso => PASOS[Math.max(0, Math.min(PASOS.length -
 const ENFOQUE: IdPaso[] = ["tecnologia", "modelo", "evaluacion", "monitoreo"];
 
 /** Intensidad del mapa térmico por paso: protagonista al inicio, de fondo cuando hay tuberías. */
-const INTENSIDAD_PASO: Record<IdPaso, number> = { problema: 1.25, inventario: 0.7, termico: 1, cruce: 0.35, tecnologia: 0.45, modelo: 0.4, evaluacion: 0.4, portafolio: 0.35, monitoreo: 0.45, impacto: 0.6 };
+const INTENSIDAD_PASO: Record<IdPaso, number> = { problema: 1.25, inventario: 0.7, termico: 1, cruce: 0.35, tecnologia: 0.45, modelo: 0.4, evaluacion: 0.4, portafolio: 0.35, monitoreo: 0.45, impacto: 0.6, ejemplo: 0.6 };
 
 interface Escena {
   id: IdPaso;
@@ -101,10 +101,10 @@ function construirEscena(paso: number, pares: Par[], oportunidad: Oportunidad, c
       return tuberia(p.id, p.fuente.id, p.demanda.id, sel ? SELECCION : p.estado === "COMPATIBLE" ? VERDE : AMBAR, sel ? 6 : 1.8, sel ? 255 : 190, sel, (k - viables.length / 2) * 2.5);
     });
     tuberias.sort((a, b) => (a.id === parSel ? 1 : b.id === parSel ? -1 : 0));
-  } else if (id === "portafolio" || id === "impacto") {
+  } else if (id === "portafolio" || id === "impacto" || id === "ejemplo") {
     tuberias = cartera.map((o, k) => {
       const oid = `${o.fuente.id}-${o.demanda.id}`;
-      return tuberia(oid, o.fuente.id, o.demanda.id, oid === opId ? SELECCION : COLOR_PRIORIDAD[o.prioridad], oid === opId ? 6 : 4, 240, id === "impacto" || oid === opId, (k - cartera.length / 2) * 4);
+      return tuberia(oid, o.fuente.id, o.demanda.id, oid === opId ? SELECCION : COLOR_PRIORIDAD[o.prioridad], oid === opId ? 6 : 4, 240, id === "impacto" || id === "ejemplo" || oid === opId, (k - cartera.length / 2) * 4);
     });
   } else if (enfoque) {
     tuberias = [tuberia(opId, oportunidad.fuente.id, oportunidad.demanda.id, SELECCION, 7, 255, true)];
@@ -113,12 +113,12 @@ function construirEscena(paso: number, pares: Par[], oportunidad: Oportunidad, c
   const visibles = new Set<string>(
     id === "problema" ? FUENTES.map((f) => f.id)
     : enfoque ? [oportunidad.fuente.id, oportunidad.demanda.id]
-    : id === "portafolio" || id === "impacto" ? cartera.flatMap((o) => [o.fuente.id, o.demanda.id])
+    : id === "portafolio" || id === "impacto" || id === "ejemplo" ? cartera.flatMap((o) => [o.fuente.id, o.demanda.id])
     : todos,
   );
   const foco = new Set<string>(enfoque ? [oportunidad.fuente.id, oportunidad.demanda.id] : id === "cruce" && parSel ? parSel.split("-") : []);
   const sensores: Array<[number, number]> =
-    id === "monitoreo" || id === "impacto" ? [[oportunidad.fuente.lng, oportunidad.fuente.lat], [oportunidad.demanda.lng, oportunidad.demanda.lat]] : [];
+    id === "monitoreo" || id === "impacto" || id === "ejemplo" ? [[oportunidad.fuente.lng, oportunidad.fuente.lat], [oportunidad.demanda.lng, oportunidad.demanda.lat]] : [];
   return { id, tuberias, pulsos: id === "problema" || id === "inventario", sensores, visibles, foco };
 }
 

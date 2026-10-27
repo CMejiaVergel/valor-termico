@@ -63,6 +63,29 @@ const LEYENDA: Array<[IdFlujo, string]> = [
   ["torreFria", "Agua de torre 30 °C"],
   ["torreCaliente", "Agua de torre 35 °C"],
 ];
+/** Descarga el motor 3D (three.js y sus extras). Se llama antes, desde el tablero, para que el gemelo abra sin espera. */
+let cargaMotor: Promise<readonly [typeof import("three"), typeof import("three/examples/jsm/controls/OrbitControls.js"), typeof import("three/examples/jsm/renderers/CSS2DRenderer.js"), typeof import("three/examples/jsm/geometries/RoundedBoxGeometry.js")]> | null = null;
+export function precargarGemelo() {
+  cargaMotor ??= Promise.all([
+    import("three"),
+    import("three/examples/jsm/controls/OrbitControls.js"),
+    import("three/examples/jsm/renderers/CSS2DRenderer.js"),
+    import("three/examples/jsm/geometries/RoundedBoxGeometry.js"),
+  ] as const).catch((e) => {
+    cargaMotor = null; // permite reintentar si falló la descarga
+    throw e;
+  });
+  return cargaMotor;
+}
+const hayWebGL = () => {
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") ?? c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+};
+
 const hex = (n: number) => `#${n.toString(16).padStart(6, "0")}`;
 
 export function GemeloChiller({ p, alto = 420 }: { p: Propuesta; alto?: number }) {
@@ -71,6 +94,8 @@ export function GemeloChiller({ p, alto = 420 }: { p: Propuesta; alto?: number }
   const [tour, setTour] = useState(true);
   const [girar, setGirar] = useState(false);
   const [listo, setListo] = useState(false);
+  const [falla, setFalla] = useState<string | null>(null);
+  const [intento, setIntento] = useState(0);
   const estado = useRef({ paso: 0 as number | null, girar: false });
   estado.current = { paso, girar };
 
@@ -88,11 +113,13 @@ export function GemeloChiller({ p, alto = 420 }: { p: Propuesta; alto?: number }
     if (!cont) return;
     let cancelado = false;
     let liberar = () => {};
+    setListo(false);
+    setFalla(null);
     (async () => {
-      const THREE = await import("three");
-      const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls.js");
-      const { CSS2DRenderer, CSS2DObject } = await import("three/examples/jsm/renderers/CSS2DRenderer.js");
-      const { RoundedBoxGeometry } = await import("three/examples/jsm/geometries/RoundedBoxGeometry.js");
+      if (!hayWebGL()) throw new Error("webgl");
+      // Un reintento automático: la descarga puede fallar por un corte breve de red.
+      const motor = await precargarGemelo().catch(() => new Promise((ok) => setTimeout(ok, 1500)).then(precargarGemelo));
+      const [THREE, { OrbitControls }, { CSS2DRenderer, CSS2DObject }, { RoundedBoxGeometry }] = motor;
       if (cancelado || !lienzo.current) return;
       type V3 = InstanceType<typeof THREE.Vector3>;
       type Obj = InstanceType<typeof THREE.Object3D>;
@@ -401,19 +428,32 @@ export function GemeloChiller({ p, alto = 420 }: { p: Propuesta; alto?: number }
         render.domElement.remove();
         etiquetas.domElement.remove();
       };
-    })();
+    })().catch((e: unknown) => {
+      if (cancelado) return;
+      console.error("Gemelo digital:", e);
+      setFalla(e instanceof Error && e.message === "webgl" ? "Este navegador no tiene WebGL activo (aceleración por hardware). Actívela o abra la vitrina en Chrome o Edge." : "No se pudo cargar el modelo 3D. Revise la conexión con el servidor y reintente.");
+    });
     return () => {
       cancelado = true;
       liberar();
     };
-  }, [p.fuente.id, p.fuente.tMax, p.demanda.id, p.demanda.nombre, calor, frio]);
+  }, [p.fuente.id, p.fuente.tMax, p.demanda.id, p.demanda.nombre, calor, frio, intento]);
 
   const actual = paso === null ? null : RECORRIDO[paso]!;
   return (
     <div className="grid gap-3 lg:grid-cols-[1fr_16rem]">
       <div className="relative overflow-hidden border border-white/10" style={{ height: alto, background: "linear-gradient(180deg, #16314f 0%, #4f7397 70%, #7d9bb8 100%)" }}>
         <div ref={lienzo} className="absolute inset-0" />
-        {!listo ? <p className="hud absolute inset-0 flex items-center justify-center text-[10px] text-white/70">Cargando gemelo digital…</p> : null}
+        {falla ? (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#0A0A0B]/70 p-6 text-center">
+            <p className="max-w-sm text-xs text-white">{falla}</p>
+            <button type="button" onClick={() => setIntento((n) => n + 1)} className="hud bg-[#FFB000] px-3 py-1.5 text-[10px] font-bold text-[#0A0A0B] hover:bg-[#FFE14D]">
+              ↻ Reintentar
+            </button>
+          </div>
+        ) : !listo ? (
+          <p className="hud absolute inset-0 flex items-center justify-center text-[10px] text-white/70">Cargando gemelo digital…</p>
+        ) : null}
         <ul className="pointer-events-none absolute bottom-10 left-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-x-3 gap-y-0.5 bg-[#0A0A0B]/50 px-2 py-1 text-[10px] text-white">
           {LEYENDA.map(([id, t]) => (
             <li key={id} className="flex items-center gap-1.5" style={{ opacity: !actual || actual.flujos.includes(id) ? 1 : 0.45 }}>

@@ -97,7 +97,20 @@ export function Detalle({ base, supuestos, modeloInicial, onVolver }: { base: Pr
       <div className="grid gap-3 xl:grid-cols-[1.2fr_1fr]">
         <div className="flex flex-col gap-3">
           <Bloque titulo="Ubicación en la planta">
-            <PlanoUbicacion p={p} alto={330} />
+            <PlanoUbicacion p={p} alto={360} />
+          </Bloque>
+          <Bloque titulo="Hoja de ruta del proyecto">
+            <ol className="relative flex flex-col gap-1.5 border-l border-white/15 pl-4 text-[11px]">
+              {hitos.map((h, i) => (
+                <li key={h.plazo}>
+                  <span className="absolute -left-[5px] mt-1 h-2.5 w-2.5 rounded-full" style={{ background: i < 3 ? "#FFE14D" : "#FFB000" }} />
+                  <p className="text-white">
+                    <b className="cifra-tabular text-[#FFB000]">{h.plazo}</b> · {h.titulo}
+                  </p>
+                  <p className="text-[#9B9BA1]">{h.detalle}</p>
+                </li>
+              ))}
+            </ol>
           </Bloque>
         </div>
         <div className="flex flex-col gap-3">
@@ -137,7 +150,7 @@ export function Detalle({ base, supuestos, modeloInicial, onVolver }: { base: Pr
             </table>
           </Bloque>
           <Bloque titulo="Impacto">
-            <ul className="grid grid-cols-2 gap-2 text-[11px] text-[#C8C8CC]">
+            <ul className="grid grid-cols-2 gap-2 text-[11px] text-[#C8C8CC] md:grid-cols-4">
               <li>
                 <b className="cifra-tabular block text-sm text-white">{num(p.co2t)} t CO₂/año</b>emisiones evitadas
               </li>
@@ -157,19 +170,6 @@ export function Detalle({ base, supuestos, modeloInicial, onVolver }: { base: Pr
                 <b className="cifra-tabular block text-sm text-white">{Math.round(p.distancia)} m</b>de tubería por rack, sin parar el proceso
               </li>
             </ul>
-          </Bloque>
-          <Bloque titulo="Hoja de ruta del proyecto">
-            <ol className="relative flex flex-col gap-1.5 border-l border-white/15 pl-4 text-[11px]">
-              {hitos.map((h, i) => (
-                <li key={h.plazo}>
-                  <span className="absolute -left-[5px] mt-1 h-2.5 w-2.5 rounded-full" style={{ background: i < 3 ? "#FFE14D" : "#FFB000" }} />
-                  <p className="text-white">
-                    <b className="cifra-tabular text-[#FFB000]">{h.plazo}</b> · {h.titulo}
-                  </p>
-                  <p className="text-[#9B9BA1]">{h.detalle}</p>
-                </li>
-              ))}
-            </ol>
           </Bloque>
         </div>
       </div>
