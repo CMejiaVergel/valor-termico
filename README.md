@@ -28,7 +28,8 @@ Fuentes, demandas y secciones se ubican sobre la imagen satelital real de la ref
 | Decisión | 7 · Evaluación | Indicadores estimados, radar de 8 criterios, riesgo, prioridad y supuestos con valores citados |
 | | 8 · Portafolio del piloto | Sección elegida por la refinería y meta (1 MW por defecto); los proyectos suman la meta |
 | Ejecución | 9 · Piloto y monitoreo | Sensórica clamp-on en vivo (simulada) y conciliación IPMVP |
-| | 10 · Portafolio de la planta | Tablero del entregable: 7 propuestas consolidadas (KPI, aporte a la meta, piloto y hoja de ruta). Detalle por propuesta: indicadores, plano de ubicación, gemelo digital 3D del chiller de absorción (three.js), cálculo, financiamiento a 10 años, impacto, hoja de ruta y «Exportar informe» |
+| | 10.1 · Portafolio de la planta | Tablero del entregable: 7 propuestas consolidadas con KPI, mapa de tuberías, cascada del aporte a la meta, matriz inversión vs. ahorro, ahorro por tecnología, piloto y hoja de ruta |
+| | 10.2 · Ejemplo detallado | Chiller de absorción: indicadores, plano de ubicación, gemelo digital 3D (three.js) con recorrido del proceso, cálculo, financiamiento a 10 años, impacto, hoja de ruta y «Exportar informe» |
 
 ## Informe exportable
 
@@ -41,7 +42,11 @@ Fuentes, demandas y secciones se ubican sobre la imagen satelital real de la ref
 
 ## Cómo correrlo
 
+Requiere Node.js 18.18 o superior (probado con Node 24) y un token **público** de Mapbox (`pk.…`, se crea gratis en mapbox.com).
+
 ```bash
+git clone https://github.com/CMejiaVergel/valor-termico.git
+cd valor-termico
 npm install
 cp .env.example .env.local   # y poner el token público de Mapbox (pk.…)
 npm run dev                  # http://localhost:3200
@@ -50,6 +55,22 @@ npm run dev                  # http://localhost:3200
 Sitio estático: `npm run build` deja todo en `out/` (`npm start` lo sirve en el puerto 3200).
 Para una subruta (p. ej. GitHub Pages): `BASE_PATH=/mapa-oportunidades-termicas npm run build`.
 En producción el token de Mapbox debe estar **restringido por URL** al dominio publicado.
+
+## Desplegar en la web
+
+Es un sitio 100 % estático: no necesita servidor ni base de datos. En cualquier servicio de hosting estático
+(Vercel, Netlify, Cloudflare Pages…) se importa el repositorio y se configura:
+
+| Ajuste | Valor |
+|---|---|
+| Comando de compilación | `npm run build` |
+| Carpeta publicada | `out` |
+| Variable de entorno | `NEXT_PUBLIC_MAPBOX_TOKEN=pk.…` (se lee al compilar) |
+
+Para GitHub Pages (sitio en `https://<usuario>.github.io/valor-termico/`) se compila con la subruta:
+`BASE_PATH=/valor-termico NEXT_PUBLIC_MAPBOX_TOKEN=pk.… npm run build` y se publica el contenido de `out/`.
+
+`.env.local` (con el token) no se sube al repositorio; `.env.example` muestra el formato.
 
 ## Estructura
 
