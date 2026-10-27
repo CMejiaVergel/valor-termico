@@ -67,8 +67,17 @@ Es un sitio 100 % estático: no necesita servidor ni base de datos. En cualquier
 | Carpeta publicada | `out` |
 | Variable de entorno | `NEXT_PUBLIC_MAPBOX_TOKEN=pk.…` (se lee al compilar) |
 
-Para GitHub Pages (sitio en `https://<usuario>.github.io/valor-termico/`) se compila con la subruta:
-`BASE_PATH=/valor-termico NEXT_PUBLIC_MAPBOX_TOKEN=pk.… npm run build` y se publica el contenido de `out/`.
+### GitHub Pages (automático)
+
+El flujo `.github/workflows/pages.yml` compila con `BASE_PATH=/valor-termico` y publica en
+`https://<usuario>.github.io/valor-termico/` en cada subida a `main` (o a mano desde la pestaña Actions).
+Se configura una sola vez en **Settings** del repositorio:
+
+1. **Secrets and variables → Actions → New repository secret**: `NEXT_PUBLIC_MAPBOX_TOKEN` con el token público (`pk.…`).
+2. **Pages → Build and deployment → Source**: **GitHub Actions**.
+3. En Mapbox, restringir ese token a la URL `https://<usuario>.github.io/*` (en un sitio estático el token queda visible en el navegador).
+
+Para compilar a mano con la misma subruta: `BASE_PATH=/valor-termico NEXT_PUBLIC_MAPBOX_TOKEN=pk.… npm run build`.
 
 `.env.local` (con el token) no se sube al repositorio; `.env.example` muestra el formato.
 

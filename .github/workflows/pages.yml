@@ -1,0 +1,57 @@
+# Publica la vitrina en GitHub Pages (https://<usuario>.github.io/valor-termico/) en cada subida a main.
+# Requisitos (una sola vez, en Settings del repositorio):
+#   · Secrets and variables → Actions → secreto NEXT_PUBLIC_MAPBOX_TOKEN con el token público de Mapbox (pk.…).
+#   · Pages → Build and deployment → Source: GitHub Actions.
+name: Publicar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Revisar el token de Mapbox
+        env:
+          NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
+        run: |
+          case "$NEXT_PUBLIC_MAPBOX_TOKEN" in
+            pk.*) echo "Token público de Mapbox configurado." ;;
+            *) echo "::error::Falta el secreto NEXT_PUBLIC_MAPBOX_TOKEN (token público pk.…) en Settings → Secrets and variables → Actions."; exit 1 ;;
+          esac
+      - name: Compilar el sitio estático
+        env:
+          # Subruta de GitHub Pages: el nombre del repositorio.
+          BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
+        run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  publicar:
+    needs: compilar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4
