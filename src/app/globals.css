@@ -377,3 +377,14 @@ section::-webkit-scrollbar-thumb {
   }
 }
 }
+/* Etiquetas del gemelo sobre el fondo azul de plano CAD. */
+.vt-etiqueta3d--cad {
+  background: rgba(255, 255, 255, 0.9);
+  color: #16212e;
+  border-color: rgba(22, 33, 46, 0.25);
+  transition: opacity 0.3s;
+}
+.vt-etiqueta3d--cad.vt-etiqueta3d--dato {
+  background: rgba(10, 10, 11, 0.82);
+  color: #ededed;
+}

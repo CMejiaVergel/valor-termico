@@ -52,7 +52,7 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 ### 2026-10-27 — Paso 10: tablero del portafolio, gemelo digital e informe PDF
 - Paso 10 «Portafolio de la planta»: en escritorio el tablero ocupa la pantalla (mapa de fondo); en celular va en la tarjeta.
 - Ejemplo detallado: OT-003, chiller de absorción F1 → D1 (1,93 MW de frío, ≈ USD 0,74 M/año, CAPEX ≈ USD 1,54 M, retorno 2,3 años).
-- Gemelo digital 3D (three.js 0.170) genérico de LiBr de simple efecto; pendiente la foto/GIF de referencia del usuario para ajustarlo.
+- Gemelo digital 3D (three.js 0.170): chiller LiBr activado por vapor con estilo de plano CAD (referencias del usuario) y dinámica de diagrama de proceso (flechas por temperatura), integrado al lazo calderas → chiller → edificio, torre y condensado; recorrido guiado de 5 pasos.
 - Informe A4 en `/informe/` (8 hojas, verificado con impresión a PDF); sin valor de la consultoría.
 - El cobro por portafolio pasó al «Por qué importa» del paso 8.
 

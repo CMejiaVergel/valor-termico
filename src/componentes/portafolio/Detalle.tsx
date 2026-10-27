@@ -84,19 +84,20 @@ export function Detalle({ base, supuestos, modeloInicial, onVolver }: { base: Pr
         ))}
       </div>
 
-      <div className="grid gap-3 xl:grid-cols-[1.35fr_1fr]">
+      <Bloque titulo={`Tecnología · ${p.tecnologia.nombre}`}>
+        {p.tecnologia.id === "T4" ? (
+          <GemeloChiller p={p} alto={500} />
+        ) : (
+          <p className="text-xs text-[#C8C8CC]">
+            {p.tecnologia.descripcion} Madurez {p.tecnologia.madurez.toLowerCase()}; rendimiento de referencia {num(p.tecnologia.factor, 2)}.
+          </p>
+        )}
+      </Bloque>
+
+      <div className="grid gap-3 xl:grid-cols-[1.2fr_1fr]">
         <div className="flex flex-col gap-3">
-          <Bloque titulo={`Tecnología · ${p.tecnologia.nombre}`}>
-            {p.tecnologia.id === "T4" ? (
-              <GemeloChiller p={p} />
-            ) : (
-              <p className="text-xs text-[#C8C8CC]">
-                {p.tecnologia.descripcion} Madurez {p.tecnologia.madurez.toLowerCase()}; rendimiento de referencia {num(p.tecnologia.factor, 2)}.
-              </p>
-            )}
-          </Bloque>
           <Bloque titulo="Ubicación en la planta">
-            <PlanoUbicacion p={p} alto={250} />
+            <PlanoUbicacion p={p} alto={330} />
           </Bloque>
         </div>
         <div className="flex flex-col gap-3">
