@@ -341,7 +341,7 @@ export const PASOS: Paso[] = [
   {
     id: "portafolio", etapa: "Decisión", titulo: "Portafolio del piloto", bajada: "Proyectos que suman la meta",
     texto: "La refinería elige una sección para el piloto y una meta medible, por ejemplo 1 MW térmico recuperado. La plataforma toma los mejores proyectos de esa sección y los suma hasta cumplir la meta. Ese portafolio documentado, con respaldo técnico y bibliográfico, es el entregable.",
-    clave: "El portafolio es el producto del servicio: los ingenieros de la refinería lo revisan y deciden qué proyectos aprobar.",
+    clave: "El portafolio es el producto del servicio. Cobramos por el portafolio, según el alcance de la sección analizada; los ingenieros de la refinería deciden qué proyectos aprobar.",
     camara: { ...PLANTA, zoom: 16.2, pitch: 15, bearing: 0 },
   },
   {
@@ -351,9 +351,9 @@ export const PASOS: Paso[] = [
     camara: { ...PLANTA, zoom: 18.1, pitch: 45, bearing: 20 }, enfocarOportunidad: true,
   },
   {
-    id: "impacto", etapa: "Ejecución", titulo: "Escenarios y hoja de ruta", bajada: "Del piloto a la refinería",
-    texto: "Cada megavatio recuperado se proyecta en tres escenarios: el piloto en una sección, un escenario intermedio con cinco secciones similares (supuesto declarado) y la refinería completa, proporcional a la meta de 7 PJ. La hoja de ruta dice qué se necesita de la refinería y qué entrega el piloto a 3, 6 y 12 meses.",
-    clave: "Cobramos por el portafolio, según el alcance de la sección analizada: una tarifa base por sección y un valor por cada fuente de calor caracterizada.",
+    id: "impacto", etapa: "Ejecución", titulo: "Portafolio de la planta", bajada: "El entregable",
+    texto: "Todas las propuestas se consolidan en un portafolio de planta: cada una con sus indicadores, su ubicación, la tecnología, el financiamiento y su hoja de ruta. Abra el detalle del chiller de absorción, gire su gemelo digital y exporte el informe.",
+    clave: "Este portafolio documentado es lo que recibe la refinería al final de la consultoría. Sus ingenieros deciden qué proyectos ejecutar.",
     camara: { ...PLANTA, zoom: 16.05, pitch: 0, bearing: 0 },
   },
 ];

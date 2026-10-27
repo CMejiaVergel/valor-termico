@@ -26,6 +26,7 @@ import { Barras, COLOR_PAR, FlujoCaja, COLOR_PRIORIDAD_CSS, MatrizCruce, MatrizP
 import { PALETAS, type PaletaCalor } from "@/componentes/mapa/MapaTermico";
 import { BarraTemperatura, COLOR, ChipOrigen, anios, cssTemperatura, mw, num, usd } from "@/componentes/ui";
 import { Firmas } from "@/componentes/Firmas";
+import { Tablero } from "@/componentes/portafolio/Tablero";
 
 // Panel contextual de cada paso: lo que explica los datos del ejemplo y deja
 // interactuar (paleta del mapa térmico, par del cruce, tecnología, modelo,
@@ -52,6 +53,8 @@ export interface ContextoPanel {
   onMetaPiloto: (mw: number) => void;
   /** Abre la sección «Supuestos y fuentes». */
   onFuentes: () => void;
+  /** Celular: el tablero arranca en la lista, no en el detalle. */
+  compacto?: boolean;
   paleta: PaletaCalor;
   onPaleta: (p: PaletaCalor) => void;
   intensidad: number;
@@ -731,12 +734,6 @@ function PanelEscenarios({ cartera, metaPiloto, seccion, supuestos, onFuentes }:
         </ul>
         <p className="mt-1 text-[10px] text-[#5E5E66]">Estimado con {num(supuestos.horas)} h/año, calor a USD {supuestos.costoEnergia}/MWh y electricidad a USD {supuestos.precioElectricidad}/MWh.</p>
       </div>
-      <div className="visor p-3 text-xs">
-        <p className="hud text-[9px] text-[#FFB000]">Modelo de negocio de Valor Térmico</p>
-        <p className="mt-1 text-base font-semibold text-white">Cobramos por el portafolio</p>
-        <p className="mt-1 text-[#C8C8CC]">Según el alcance de la sección analizada: una tarifa base por sección y un valor por cada fuente de calor caracterizada. El entregable es el portafolio con las propuestas, la tecnología, los datos de base y las estimaciones.</p>
-        <p className="mt-2 text-[10px] text-[#9B9BA1]">No depende de que los proyectos se ejecuten ni de cómo los financie la refinería. Acompañar la implementación se cotiza aparte.</p>
-      </div>
       <div>
         <p className="hud mb-1.5 text-[9px] text-[#9B9BA1]">Hoja de ruta del piloto</p>
         <ol className="relative flex flex-col gap-2 border-l border-white/15 pl-4 text-xs">
@@ -784,6 +781,13 @@ export function PanelPaso(ctx: ContextoPanel & { puntoSeleccionado: string | nul
     case "monitoreo":
       return <PanelMonitoreo op={ctx.op} />;
     case "impacto":
-      return <PanelEscenarios cartera={ctx.cartera} metaPiloto={ctx.metaPiloto} seccion={ctx.seccion} supuestos={ctx.supuestos} onFuentes={ctx.onFuentes} />;
+      return (
+        <Tablero
+          supuestos={ctx.supuestos}
+          modeloInicial={ctx.op.modelo.id}
+          compacto={ctx.compacto}
+          escenarios={<PanelEscenarios cartera={ctx.cartera} metaPiloto={ctx.metaPiloto} seccion={ctx.seccion} supuestos={ctx.supuestos} onFuentes={ctx.onFuentes} />}
+        />
+      );
   }
 }

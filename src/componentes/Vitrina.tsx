@@ -207,6 +207,7 @@ export function Vitrina() {
       metaPiloto={metaPiloto}
       onMetaPiloto={setMetaPiloto}
       onFuentes={() => setFuentesAbiertas(true)}
+      compacto={movil}
       paleta={paleta}
       onPaleta={setPaleta}
       intensidad={intensidad}
@@ -227,6 +228,8 @@ export function Vitrina() {
   }
 
   const etapaActual = ETAPAS.indexOf(actual.etapa);
+  // Último paso: el tablero del portafolio ocupa la pantalla y el mapa queda de fondo.
+  const tablero = actual.id === "impacto";
 
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden bg-[#0A0A0B] text-[#EDEDED]">
@@ -263,7 +266,7 @@ export function Vitrina() {
         lista={lista}
       />
       {lista && tarjeta ? (
-        <TarjetaPaso paso={paso} total={PASOS.length} etapa={actual.etapa} titulo={actual.titulo} bajada={actual.bajada} texto={actual.texto} clave={actual.clave} detalle={panel} onVerMapa={() => setTarjeta(false)} onAnterior={() => ir(paso - 1)} />
+        <TarjetaPaso paso={paso} total={PASOS.length} etapa={actual.etapa} titulo={actual.titulo} bajada={actual.bajada} texto={actual.texto} clave={actual.clave} detalle={movil ? panel : null} onVerMapa={() => setTarjeta(false)} onAnterior={() => ir(paso - 1)} />
       ) : null}
       {lista && !tarjeta ? <ControlesMovil paso={paso} total={PASOS.length} titulo={actual.titulo} onInfo={() => setTarjeta(true)} onAnterior={() => ir(paso - 1)} onSiguiente={() => (paso === PASOS.length - 1 ? ir(0) : ir(paso + 1))} /> : null}
 
@@ -306,7 +309,7 @@ export function Vitrina() {
       </header>
 
       {/* ── Visor del paso + lecturas (izquierda) ── */}
-      <div className="absolute left-4 top-[3.75rem] z-10 hidden w-[18rem] flex-col gap-3 md:flex xl:w-[21rem]" style={{ maxHeight: "calc(100% - 3.75rem - 8rem)" }}>
+      <div className={`absolute left-4 top-[3.75rem] z-10 hidden w-[18rem] flex-col gap-3 xl:w-[21rem] ${tablero ? "" : "md:flex"}`} style={{ maxHeight: "calc(100% - 3.75rem - 8rem)" }}>
         <section key={paso} className="visor vt-tarjeta-movil p-4">
           <p className="hud flex items-center justify-between text-[10px] text-[#FFB000]">
             <span>
@@ -341,22 +344,29 @@ export function Vitrina() {
       </div>
 
       {/* ── Escala de temperatura (derecha, como en una cámara térmica) ── */}
-      <div className={`absolute top-[3.75rem] z-10 hidden flex-col items-center gap-1 md:flex ${fichaAbierta ? "right-[21.5rem] xl:right-[26rem]" : "right-4"}`} aria-hidden>
+      <div className={`absolute top-[3.75rem] z-10 hidden flex-col items-center gap-1 ${tablero ? "" : "md:flex"} ${fichaAbierta ? "right-[21.5rem] xl:right-[26rem]" : "right-4"}`} aria-hidden>
         <span className="cifra-tabular text-[10px] text-white">320°</span>
         <div className="h-44 w-2.5 border border-white/30" style={{ background: "linear-gradient(0deg, #3c5adc, #8c32b4, #e1376e, #ff6e1e, #ffc32d, #fffad7)" }} />
         <span className="cifra-tabular text-[10px] text-white">0°C</span>
       </div>
 
       {/* ── Ficha técnica plegable (derecha) ── */}
-      <aside className={`visor absolute right-4 top-[3.75rem] z-10 hidden flex-col md:flex ${fichaAbierta ? "bottom-[7.25rem] w-[20rem] xl:w-[24.5rem]" : "w-auto"}`}>
+      <aside className={`visor absolute right-4 top-[3.75rem] z-10 hidden flex-col ${tablero ? "" : "md:flex"} ${fichaAbierta ? "bottom-[7.25rem] w-[20rem] xl:w-[24.5rem]" : "w-auto"}`}>
         <button type="button" onClick={() => setFichaAbierta((a) => !a)} className="hud flex items-center justify-between gap-3 border-b border-white/10 px-3 py-2 text-[10px] text-[#9B9BA1] hover:text-white">
           <span>
             Ficha técnica <span className="text-[#FFB000]">· {actual.titulo}</span>
           </span>
           <span>{fichaAbierta ? "▸ ocultar" : "◂ ver"}</span>
         </button>
-        {fichaAbierta ? <div className="min-h-0 flex-1 overflow-y-auto p-3">{panel}</div> : null}
+        {fichaAbierta && !tablero && !movil ? <div className="min-h-0 flex-1 overflow-y-auto p-3">{panel}</div> : null}
       </aside>
+
+      {/* ── Tablero del portafolio (último paso, escritorio) ── */}
+      {tablero && lista && !movil ? (
+        <section key="tablero" className="vt-tarjeta-movil absolute inset-x-4 bottom-[7.25rem] top-[3.75rem] z-10 hidden overflow-y-auto border border-white/10 bg-[#0A0A0B]/[0.9] p-4 backdrop-blur-sm md:block" aria-label="Portafolio de la planta">
+          {panel}
+        </section>
+      ) : null}
 
       {/* ── Línea de tiempo (abajo) ── */}
       <nav className="absolute inset-x-4 bottom-4 z-10 hidden border border-white/10 bg-[#0A0A0B]/[0.92] px-4 pb-3 pt-2 md:block" aria-label="Recorrido">

@@ -314,3 +314,66 @@ aside::-webkit-scrollbar-thumb,
 section::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* Etiquetas del gemelo digital (CSS2DRenderer). */
+.vt-etiqueta3d {
+  font-family: var(--font-titulos), "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ededed;
+  background: rgba(10, 10, 11, 0.78);
+  border: 1px solid rgba(237, 237, 237, 0.18);
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.vt-etiqueta3d--dato {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  border-color: rgba(255, 176, 0, 0.45);
+}
+
+/* Informe en formato A4: hojas sobre fondo gris en pantalla; una por página al imprimir.
+   En @layer components para que las utilidades (p. ej. el fondo oscuro de la portada) ganen. */
+@page {
+  size: A4;
+  margin: 0;
+}
+@layer components {
+.vt-pagina {
+  display: flex;
+  flex-direction: column;
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  color: #0a0a0b;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45);
+  break-after: page;
+}
+.vt-informe {
+  overflow: auto;
+  height: 100dvh;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .vt-informe {
+    height: auto;
+    overflow: visible;
+  }
+  .vt-sin-imprimir {
+    display: none !important;
+  }
+  .vt-pagina {
+    box-shadow: none;
+    height: 297mm;
+    overflow: hidden;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+}

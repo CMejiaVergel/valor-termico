@@ -49,6 +49,13 @@ Rehecha el 2026-10-23 tomando la estructura de la Vitrina de ConfluencIA Hídric
 - 2026-10-23 · Factores ilustrativos: CO₂ 0,20 t/MWh calor (gas natural), 0,14 t/MWh eléctrico; 95 m³ de gas por MWh.
 
 ## Bitácora
+### 2026-10-27 — Paso 10: tablero del portafolio, gemelo digital e informe PDF
+- Paso 10 «Portafolio de la planta»: en escritorio el tablero ocupa la pantalla (mapa de fondo); en celular va en la tarjeta.
+- Ejemplo detallado: OT-003, chiller de absorción F1 → D1 (1,93 MW de frío, ≈ USD 0,74 M/año, CAPEX ≈ USD 1,54 M, retorno 2,3 años).
+- Gemelo digital 3D (three.js 0.170) genérico de LiBr de simple efecto; pendiente la foto/GIF de referencia del usuario para ajustarlo.
+- Informe A4 en `/informe/` (8 hojas, verificado con impresión a PDF); sin valor de la consultoría.
+- El cobro por portafolio pasó al «Por qué importa» del paso 8.
+
 ### 2026-10-24 (tarde) — Marca Valor Térmico, PDI Advanced, aliados, QR y cobro por alcance
 - Cambio de marca en toda la vitrina; logos en `public/marca/` (entrada, barra superior ≥1536 px y paso 10).
 - QR de ejemplo con isotipo «VT» en `recursos/qr/` (verificado con lector); falta el enlace definitivo.

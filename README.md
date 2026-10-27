@@ -28,7 +28,11 @@ Fuentes, demandas y secciones se ubican sobre la imagen satelital real de la ref
 | Decisión | 7 · Evaluación | Indicadores estimados, radar de 8 criterios, riesgo, prioridad y supuestos con valores citados |
 | | 8 · Portafolio del piloto | Sección elegida por la refinería y meta (1 MW por defecto); los proyectos suman la meta |
 | Ejecución | 9 · Piloto y monitoreo | Sensórica clamp-on en vivo (simulada) y conciliación IPMVP |
-| | 10 · Escenarios y hoja de ruta | Piloto, intermedio (5 secciones, supuesto) y refinería completa (∝ 7 PJ); 1 MW según su uso; cobro por portafolio; hoja de ruta (antes del lunes, meses 1–3, meses 6–12); PDI Advanced y aliados |
+| | 10 · Portafolio de la planta | Tablero del entregable: 7 propuestas consolidadas (KPI, aporte a la meta, piloto y hoja de ruta). Detalle por propuesta: indicadores, plano de ubicación, gemelo digital 3D del chiller de absorción (three.js), cálculo, financiamiento a 10 años, impacto, hoja de ruta y «Exportar informe» |
+
+## Informe exportable
+
+`/informe/?id=F1-D1&m=M2&ef=…` abre el informe de una propuesta en formato A4 (portada, contenido, 13 secciones, supuestos y fuentes) con la marca Valor Térmico y PDI Advanced; «Imprimir / Guardar como PDF» usa el diálogo del navegador. No incluye el valor de la consultoría: es un informe técnico, no una propuesta comercial.
 
 ## Marca y recursos
 
@@ -49,6 +53,9 @@ En producción el token de Mapbox debe estar **restringido por URL** al dominio 
 
 ## Estructura
 
+- `src/dominio/portafolios.ts` — portafolio de planta, cálculo paso a paso, flujo a 10 años, hoja de ruta por proyecto.
+- `src/componentes/portafolio/` — Tablero, Detalle, PlanoUbicacion (satélite en `public/planta/`), GemeloChiller (3D), FlujoDiez.
+- `src/componentes/informe/Informe.tsx` — informe A4 (ruta `src/app/informe/`).
 - `src/dominio/escenario.ts` — fuentes, demandas, tecnologías, esquemas de financiamiento, supuestos con sus fuentes y los 10 pasos.
 - `src/dominio/motor.ts` — cruce (C1–C5), ajuste de tecnología, evaluación (8 criterios ponderados) y portafolio.
 - `src/componentes/mapa/MapaTermico.tsx` — Mapbox `satellite-v9` en gris + mapa térmico nativo + deck.gl intercalado (tuberías, flujo, emisión, sensores).
