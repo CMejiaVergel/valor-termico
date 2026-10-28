@@ -8,6 +8,7 @@ import { COMPONENTES } from "@/componentes/portafolio/GemeloChiller";
 import { FlujoDiez } from "@/componentes/portafolio/FlujoDiez";
 import { PlanoUbicacion } from "@/componentes/portafolio/PlanoUbicacion";
 import { ALIADOS } from "@/componentes/Firmas";
+import { CONTACTO, EnlacesContacto } from "@/componentes/Contacto";
 import { anios, num, usd } from "@/componentes/ui";
 
 // Informe de una propuesta del portafolio, en formato de documento A4: portada,
@@ -208,8 +209,9 @@ export function Informe() {
                 ["Fecha", FECHA],
                 ["Propuesta", `${p.codigo} · prioridad ${p.prioridad}`],
                 ["Esquema de financiamiento evaluado", modelo.nombre],
+                ["Autor", `${CONTACTO.autor} · ${CONTACTO.cargo}`],
               ].map(([k, v]) => (
-                <div key={k}>
+                <div key={k} className={k === "Autor" ? "col-span-2" : ""}>
                   <dt className="font-[family-name:var(--font-mono)] text-[7.5pt] uppercase tracking-[0.16em] text-[#6E6E76]">{k}</dt>
                   <dd className="mt-[1mm] text-white">{v}</dd>
                 </div>
@@ -223,6 +225,7 @@ export function Informe() {
                 <p className="mb-[2mm] font-[family-name:var(--font-mono)] text-[7pt] uppercase tracking-[0.16em] text-[#6E6E76]">Una solución de</p>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${BASE}/marca/pdi-advanced-oscuro.png`} alt="PDI Advanced" className="h-[16mm] w-auto" />
+                <EnlacesContacto className="mt-[3mm] text-[8.5pt]" />
               </div>
               <div className="text-right">
                 <p className="mb-[2mm] font-[family-name:var(--font-mono)] text-[7pt] uppercase tracking-[0.16em] text-[#6E6E76]">Aliados</p>
@@ -405,8 +408,11 @@ export function Informe() {
           <div className="mt-[8mm] flex items-end justify-between border-t border-[#E4E4E7] pt-[4mm] text-[8.5pt] text-[#2A2A30]">
             <div>
               <p className="text-[7.5pt] uppercase tracking-[0.14em] text-[#6E6E76]">Elaborado por</p>
-              <p className="font-semibold">PDI Advanced · Engineering Solutions</p>
-              <p>Plataforma Valor Térmico · {FECHA}</p>
+              <p className="font-semibold">
+                {CONTACTO.autor} · {CONTACTO.cargo}
+              </p>
+              <p>PDI Advanced · Engineering Solutions · Plataforma Valor Térmico · {FECHA}</p>
+              <EnlacesContacto claro className="mt-[1.5mm]" />
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={`${BASE}/marca/pdi-advanced-claro.png`} alt="PDI Advanced" className="h-[12mm] w-auto" />

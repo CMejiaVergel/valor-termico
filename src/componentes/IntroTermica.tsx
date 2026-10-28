@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Firmas } from "@/componentes/Firmas";
+import { CONTACTO, EnlacesContacto } from "@/componentes/Contacto";
 import { DEMANDAS, FUENTES } from "@/dominio/escenario";
 
 // Entrada de Valor Térmico: "calibración del sensor térmico". Tapa el mapa
@@ -107,6 +108,10 @@ export function IntroTermica({ mapaListo, onTerminar }: { mapaListo: boolean; on
             </details>
           </div>
           <Firmas />
+          <div className="flex flex-col items-center gap-1.5 border-t border-white/10 pt-3 text-[11px]">
+            <span className="hud text-[9px] text-[#9B9BA1]">Contacto · {CONTACTO.autor} · {CONTACTO.cargo}</span>
+            <EnlacesContacto className="justify-center" />
+          </div>
         </div>
       </div>
       {revelando ? <div className="vt-barrido absolute inset-x-0 top-0 h-[3px] bg-[#FFE14D] shadow-[0_0_24px_6px_rgba(255,176,0,0.75)]" aria-hidden /> : null}
